@@ -1,0 +1,96 @@
+import type { WorkspaceMember } from '../types/workspace'
+
+const baseMembers: WorkspaceMember[] = [
+  { id: 'm1', role: 'admin', joinedAt: '', user: { id: 'current-user', email: 'kim.chattr@example.com', name: '김채트', status: 'online' } },
+  { id: 'm2', role: 'member', joinedAt: '', user: { id: 'u2', email: 'seoyoon@example.com', name: '이서윤', status: 'offline' } },
+  { id: 'm3', role: 'admin', joinedAt: '', user: { id: 'u3', email: 'junyoung@example.com', name: '박준영', status: 'offline' } },
+  { id: 'm4', role: 'member', joinedAt: '', user: { id: 'u4', email: 'sujin@example.com', name: '최수진', status: 'online' } },
+  { id: 'm5', role: 'member', joinedAt: '', user: { id: 'u5', email: 'dohyun@example.com', name: '윤도현', status: 'offline' } },
+  { id: 'm6', role: 'admin', joinedAt: '', user: { id: 'u6', email: 'minjae@example.com', name: '김민재', status: 'offline' } },
+  { id: 'm7', role: 'member', joinedAt: '', user: { id: 'u7', email: 'gain@example.com', name: '한가인', status: 'online' } },
+  { id: 'm8', role: 'member', joinedAt: '', user: { id: 'u8', email: 'woosung@example.com', name: '정우성', status: 'offline' } },
+  { id: 'm9', role: 'member', joinedAt: '', user: { id: 'u9', email: 'jiho@example.com', name: '송지효', status: 'offline' } },
+  { id: 'm10', role: 'admin', joinedAt: '', user: { id: 'u10', email: 'donggun@example.com', name: '장동건', status: 'online' } },
+  { id: 'm11', role: 'member', joinedAt: '', user: { id: 'u11', email: 'byunghun@example.com', name: '이병헌', status: 'offline' } },
+  { id: 'm12', role: 'member', joinedAt: '', user: { id: 'u12', email: 'jihyun@example.com', name: '전지현', status: 'offline' } },
+  { id: 'm13', role: 'member', joinedAt: '', user: { id: 'u13', email: 'jaeseok@example.com', name: '유재석', status: 'offline' } },
+  { id: 'm14', role: 'admin', joinedAt: '', user: { id: 'u14', email: 'mina@example.com', name: '신민아', status: 'offline' } },
+]
+
+const additionalMemberNames = [
+  '김하늘',
+  '오지훈',
+  '서민지',
+  '남궁민',
+  '문채원',
+  '조인성',
+  '공유',
+  '김태리',
+  '이도현',
+  '배수지',
+  '박보검',
+  '정해인',
+  '한지민',
+  '류준열',
+  '김고은',
+  '손예진',
+  '현빈',
+  '차은우',
+  '임윤아',
+  '유연석',
+  '박민영',
+  '강하늘',
+  '이지은',
+  '송중기',
+  '송혜교',
+  '김우빈',
+  '신세경',
+  '이준호',
+  '정유미',
+  '하정우',
+  '전도연',
+  '마동석',
+  '라미란',
+  '조정석',
+  '공효진',
+  '김선호',
+  '서현진',
+  '이동욱',
+  '유인나',
+  '박서준',
+  '한소희',
+  '김지원',
+  '손석구',
+  '이성경',
+  '남주혁',
+  '안효섭',
+  '김세정',
+  '문가영',
+  '여진구',
+  '김유정',
+  '정소민',
+  '이제훈',
+  '천우희',
+  '김남길',
+]
+
+export const currentUserId = 'current-user'
+
+export const mockWorkspaceMembers: WorkspaceMember[] = [
+  ...baseMembers,
+  ...additionalMemberNames.map((name, index) => {
+    const memberNumber = baseMembers.length + index + 1
+
+    return {
+      id: `m${memberNumber}`,
+      role: memberNumber % 9 === 0 ? 'admin' : 'member',
+      joinedAt: '',
+      user: {
+        id: `u${memberNumber}`,
+        email: `member${memberNumber}@example.com`,
+        name,
+        status: memberNumber % 7 === 0 ? 'online' : 'offline',
+      },
+    } satisfies WorkspaceMember
+  }),
+]

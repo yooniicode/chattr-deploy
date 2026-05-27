@@ -18,6 +18,13 @@ export interface Message {
   content: string
   attachments?: FileAttachment[]
   parentMessageId?: string
+  displayTime?: string
+  codeBlock?: string
+  imagePreviewUrl?: string
+  replyPreview?: {
+    authorName: string
+    content: string
+  }
   createdAt: string
   updatedAt?: string
 }

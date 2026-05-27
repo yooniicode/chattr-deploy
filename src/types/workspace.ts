@@ -1,6 +1,6 @@
 import type { User } from './user'
 
-export type WorkspaceRole = 'owner' | 'admin' | 'member'
+export type WorkspaceRole = 'admin' | 'member'
 
 export interface Workspace {
   id: string

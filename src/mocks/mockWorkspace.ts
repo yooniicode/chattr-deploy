@@ -12,7 +12,7 @@ export const mockWorkspaceMembers: WorkspaceMember[] = [
   {
     id: 'member-1',
     joinedAt: '2026-05-26T00:00:00.000Z',
-    role: 'owner',
+    role: 'admin',
     user: {
       id: 'user-1',
       email: 'owner@chattr.app',

@@ -1,19 +1,118 @@
+import { Download, FileText, Image as ImageIcon } from 'lucide-react'
 import type { Message } from '../../types/message'
 import { formatDate } from '../../utils/formatDate'
+import { formatFileSize } from '../../utils/upload'
 import { Avatar } from '../common/Avatar'
 
 interface ChatMessageProps {
   message: Message
 }
 
-export function ChatMessage({ message }: ChatMessageProps) {
+function MessageAvatar({ message }: ChatMessageProps) {
   return (
-    <article className="message">
-      <Avatar name={message.author.name} src={message.author.avatarUrl} />
+    <span className="relative inline-flex">
+      <Avatar name={message.author.name} size={36} src={message.author.avatarUrl} />
+      {message.author.status === 'online' ? (
+        <span className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-[#fbfbff] bg-emerald-500" />
+      ) : null}
+    </span>
+  )
+}
+
+export function ChatMessage({ message }: ChatMessageProps) {
+  const handleReplyPreviewClick = () => {
+    if (!message.parentMessageId) return
+
+    document.getElementById(message.parentMessageId)?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+    })
+  }
+
+  return (
+    <article className="relative grid scroll-mt-6 grid-cols-[2.5rem_minmax(0,1fr)] gap-3" id={message.id}>
+      {message.replyPreview ? (
+        <span className="absolute left-[18px] top-[6px] h-[18px] w-[18px] rounded-tl-md border-l-2 border-t-2 border-slate-300" />
+      ) : null}
+      <div className={message.replyPreview ? 'pt-6' : undefined}>
+        <MessageAvatar message={message} />
+      </div>
       <div>
-        <strong>{message.author.name}</strong>
-        <time dateTime={message.createdAt}>{formatDate(message.createdAt)}</time>
-        <p>{message.content}</p>
+        {message.replyPreview ? (
+          <button
+            className="-ml-[34px] mb-0.5 flex h-5 -translate-y-1 items-center gap-2 text-left text-xs font-medium text-slate-500/75 transition-colors hover:text-[#0058BE]"
+            onClick={handleReplyPreviewClick}
+            type="button"
+          >
+            <span className="relative h-[18px] w-[38px] shrink-0">
+              <span className="absolute right-0 top-0">
+              <span className="opacity-75">
+              <Avatar name={message.replyPreview.authorName} size={18} />
+              </span>
+              </span>
+            </span>
+            <span className="shrink-0 whitespace-nowrap">@{message.replyPreview.authorName}</span>
+            <span className="max-w-md truncate whitespace-nowrap">{message.replyPreview.content}</span>
+          </button>
+        ) : null}
+
+        <div className="flex items-baseline gap-2">
+          <strong className="shrink-0 whitespace-nowrap text-sm font-bold text-slate-950">{message.author.name}</strong>
+          <time className="text-xs font-medium text-slate-500" dateTime={message.createdAt}>
+            {message.displayTime ?? formatDate(message.createdAt)}
+          </time>
+        </div>
+        <p className="mt-1 text-sm leading-6 text-slate-800">{message.content}</p>
+
+        {message.attachments?.map((file) => (
+          <a
+            className="mt-3 flex w-fit min-w-60 items-center gap-3 rounded-lg border border-slate-300 bg-white px-3 py-3 text-slate-950 shadow-sm"
+            href={file.url}
+            key={file.id}
+          >
+            <span className="grid size-10 place-items-center rounded-md bg-red-100 text-red-600">
+              {file.contentType.startsWith('image/') ? <ImageIcon size={20} /> : <FileText size={20} />}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-base font-extrabold">{file.name}</span>
+              <span className="block text-xs font-semibold text-slate-500">{formatFileSize(file.size)}</span>
+            </span>
+            <Download className="text-slate-600" size={18} />
+          </a>
+        ))}
+
+        {message.codeBlock ? (
+          <div className="mt-3 max-w-xl rounded-lg bg-[#1f1e2e] p-4 text-sm text-slate-200 shadow-lg">
+            <div className="mb-2 flex justify-end gap-2">
+              <span className="size-3 rounded-full bg-red-500" />
+              <span className="size-3 rounded-full bg-yellow-400" />
+              <span className="size-3 rounded-full bg-green-500" />
+            </div>
+            <pre className="overflow-x-auto whitespace-pre-wrap font-mono leading-6">{message.codeBlock}</pre>
+          </div>
+        ) : null}
+
+        {message.imagePreviewUrl ? (
+          <div className="mt-3 w-fit overflow-hidden rounded-lg border border-slate-300 bg-white">
+            <div className="grid w-[26rem] grid-cols-2 gap-2 bg-slate-100 p-3">
+              <img
+                alt="dashboard reference preview"
+                className="h-36 w-full rounded object-cover"
+                src={message.imagePreviewUrl}
+              />
+              <img
+                alt="dashboard reference preview"
+                className="h-36 w-full rounded object-cover"
+                src={message.imagePreviewUrl}
+              />
+            </div>
+            <div className="flex items-center gap-2 px-3 py-2 text-sm">
+              <ImageIcon className="text-[#0058BE]" size={18} />
+              <span className="font-medium text-slate-800">dashboard_reference.png (1.2MB)</span>
+              <Download className="ml-auto text-slate-600" size={18} />
+            </div>
+          </div>
+        ) : null}
       </div>
     </article>
   )
