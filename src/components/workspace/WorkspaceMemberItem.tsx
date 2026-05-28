@@ -1,3 +1,4 @@
+import type { MouseEvent } from 'react'
 import type { WorkspaceMember } from '../../types/workspace'
 import { Avatar } from '../common/Avatar'
 import { WorkspaceRoleBadge } from './WorkspaceRoleBadge'
@@ -5,7 +6,7 @@ import { WorkspaceRoleBadge } from './WorkspaceRoleBadge'
 interface WorkspaceMemberItemProps {
   member: WorkspaceMember
   isCurrentUser?: boolean
-  onRoleClick?: (member: WorkspaceMember) => void
+  onRoleClick?: (member: WorkspaceMember, event: MouseEvent<HTMLButtonElement>) => void
 }
 
 export function WorkspaceMemberItem({ member, isCurrentUser = false, onRoleClick }: WorkspaceMemberItemProps) {
@@ -21,7 +22,7 @@ export function WorkspaceMemberItem({ member, isCurrentUser = false, onRoleClick
         {member.user.name}
         {isCurrentUser ? <span className="ml-1 text-xs font-bold text-[#0058BE]">(나)</span> : null}
       </span>
-      <WorkspaceRoleBadge role={member.role} onClick={() => onRoleClick?.(member)} />
+      <WorkspaceRoleBadge role={member.role} onClick={(event) => onRoleClick?.(member, event)} />
     </div>
   )
 }

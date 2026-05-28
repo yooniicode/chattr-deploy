@@ -3,9 +3,10 @@ import type { Workspace } from '../../types/workspace'
 interface WorkspaceCardProps {
   workspace: Workspace
   active?: boolean
+  onClick?: () => void
 }
 
-export function WorkspaceCard({ active = false, workspace }: WorkspaceCardProps) {
+export function WorkspaceCard({ active = false, onClick, workspace }: WorkspaceCardProps) {
   return (
     <button
       aria-label={workspace.name}
@@ -14,6 +15,7 @@ export function WorkspaceCard({ active = false, workspace }: WorkspaceCardProps)
           ? 'border-[#0058BE] bg-[#0058BE] text-white'
           : 'border-slate-300 bg-slate-100 text-slate-700 hover:bg-white'
       }`}
+      onClick={onClick}
       type="button"
     >
       {workspace.name.slice(0, 2)}

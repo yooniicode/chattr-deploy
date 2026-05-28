@@ -1,16 +1,18 @@
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Flag, Mail, MessageSquare, UserRoundCheck, Users } from 'lucide-react'
-import { Button } from '../components/common/Button'
 import { Avatar } from '../components/common/Avatar'
+import { Button } from '../components/common/Button'
 import { MainLayout } from '../components/layout/MainLayout'
+import { useWorkspaceStore } from '../stores/useWorkspaceStore'
+import type { WorkspaceMember } from '../types/workspace'
 
-const workspaces = [
+const staticWorkspaces = [
   {
     id: 'apollo',
     badge: 'apollo',
     name: '프로젝트 apollo TF',
     description: '제품 개발 및 인프라 관리를 위한 통합 워크스페이스입니다.',
-    members: 68,
-    extraMembers: 66,
     accent: '#0058BE',
     selected: true,
   },
@@ -19,8 +21,6 @@ const workspaces = [
     badge: '0602',
     name: '0602 meeting 준비',
     description: '브랜드 가이드라인 및 디자인 라이브러리 운영 공간입니다.',
-    members: 14,
-    extraMembers: 13,
     accent: '#5a6072',
   },
   {
@@ -28,8 +28,6 @@ const workspaces = [
     badge: 'PJ5',
     name: 'project5',
     description: '글로벌 마케팅 캠페인 기획 및 성과 분석 워크스페이스.',
-    members: 31,
-    extraMembers: 30,
     accent: '#8A3D00',
   },
 ]
@@ -47,6 +45,28 @@ const invites = [
   },
 ]
 
+const ACCEPTED_INVITES_STORAGE_KEY = 'chattr-accepted-invite-ids'
+
+const getInitialAcceptedInviteIds = () => {
+  try {
+    return JSON.parse(localStorage.getItem(ACCEPTED_INVITES_STORAGE_KEY) ?? '[]') as string[]
+  } catch {
+    return []
+  }
+}
+
+interface WorkspaceManageCardData {
+  id: string
+  badge: string
+  name: string
+  description: string
+  members: number
+  extraMembers: number
+  accent: string
+  previewMembers: WorkspaceMember[]
+  selected?: boolean
+}
+
 function WorkspaceTopHeader() {
   return (
     <header className="flex h-10 items-center border-b border-slate-300 bg-[#fbfbff] px-6">
@@ -58,7 +78,16 @@ function WorkspaceTopHeader() {
   )
 }
 
-function WorkspaceManageCard({ workspace }: { workspace: (typeof workspaces)[number] }) {
+function WorkspaceManageCard({
+  onViewMembers,
+  workspace,
+}: {
+  onViewMembers: () => void
+  workspace: WorkspaceManageCardData
+}) {
+  const visiblePreviewMembers =
+    workspace.members < 3 ? workspace.previewMembers.slice(0, 1) : workspace.previewMembers.slice(0, 2)
+
   return (
     <article className="group overflow-hidden rounded-lg border border-slate-300 bg-white transition-shadow hover:shadow-md">
       <div className="h-1" style={{ backgroundColor: workspace.accent }} />
@@ -74,22 +103,23 @@ function WorkspaceManageCard({ workspace }: { workspace: (typeof workspaces)[num
 
         <div className="flex items-center justify-between gap-4">
           <div>
-            <div className="mb-2 flex items-center -space-x-2">
-              <Avatar name="강지원" size={22} />
-              <Avatar name="이서윤" size={22} />
-              <span className="grid size-6 place-items-center rounded-full bg-slate-200 text-[10px] font-bold text-slate-600 ring-2 ring-white">
-                +{workspace.extraMembers}
-              </span>
+            <div className="mb-2 flex min-h-6 items-center -space-x-2">
+              {visiblePreviewMembers.map((member) => (
+                <Avatar key={member.id} name={member.user.name} size={22} src={member.user.avatarUrl} />
+              ))}
+              {workspace.members >= 3 ? (
+                <span className="grid size-6 place-items-center rounded-full bg-slate-200 text-[10px] font-bold text-slate-600 ring-2 ring-white">
+                  +{workspace.extraMembers}
+                </span>
+              ) : null}
             </div>
             <p className="text-xs font-medium text-slate-700">{workspace.members} Members</p>
           </div>
 
           <button
-            className={`rounded-full px-3 py-1 text-[11px] font-bold leading-none transition-colors ${
-              workspace.selected
-                ? 'bg-[#0058BE] text-white hover:bg-[#004EA8]'
-                : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-            }`}
+            className="rounded-full px-3 py-1 text-[11px] font-bold leading-none text-white transition-opacity hover:opacity-85"
+            onClick={onViewMembers}
+            style={{ backgroundColor: workspace.accent }}
             type="button"
           >
             멤버 조회
@@ -100,20 +130,20 @@ function WorkspaceManageCard({ workspace }: { workspace: (typeof workspaces)[num
   )
 }
 
-function InviteCard({ invite }: { invite: (typeof invites)[number] }) {
+function InviteCard({ invite, onAccept }: { invite: (typeof invites)[number]; onAccept: () => void }) {
   const Icon = invite.icon
 
   return (
     <article className="overflow-hidden rounded-lg border border-slate-300 bg-white transition-shadow hover:shadow-md">
       <div className="h-1 bg-[#0058BE]" />
-      <div className="flex items-center justify-between gap-5 px-5 py-4">
+      <div className="flex items-center justify-between gap-5 px-5 py-2.5">
         <div className="flex items-center gap-4">
           <span className="grid size-9 place-items-center rounded-md bg-slate-200 text-slate-800">
             <Icon size={19} />
           </span>
           <h3 className="text-xs font-extrabold leading-5 text-slate-950">{invite.title}</h3>
         </div>
-        <Button className="min-h-8 gap-2 px-4 py-1.5 text-xs" variant="secondary">
+        <Button className="min-h-8 gap-2 px-4 py-1.5 text-xs" onClick={onAccept} variant="secondary">
           <Mail size={15} />
           초대 수락하기
         </Button>
@@ -123,6 +153,50 @@ function InviteCard({ invite }: { invite: (typeof invites)[number] }) {
 }
 
 export function WorkspaceManagePage() {
+  const navigate = useNavigate()
+  const [acceptedInviteIds, setAcceptedInviteIds] = useState<string[]>(getInitialAcceptedInviteIds)
+  const addWorkspace = useWorkspaceStore((state) => state.addWorkspace)
+  const setActiveWorkspaceId = useWorkspaceStore((state) => state.setActiveWorkspaceId)
+  const storedWorkspaces = useWorkspaceStore((state) => state.workspaces)
+  const workspaceMembersByWorkspaceId = useWorkspaceStore((state) => state.workspaceMembersByWorkspaceId)
+  const pendingInvites = invites.filter((invite) => !acceptedInviteIds.includes(invite.id))
+
+  const displayedWorkspaces: WorkspaceManageCardData[] = storedWorkspaces.map((workspace) => {
+    const staticWorkspace = staticWorkspaces.find((item) => item.id === workspace.id)
+    const workspaceMembers = workspaceMembersByWorkspaceId[workspace.id] ?? []
+    const memberCount = workspaceMembers.length || 0
+
+    return {
+      accent: staticWorkspace?.accent ?? '#0058BE',
+      badge: staticWorkspace?.badge ?? workspace.name.slice(0, 2),
+      description: staticWorkspace?.description ?? '새로 추가된 워크스페이스입니다.',
+      extraMembers: Math.max(0, memberCount - 2),
+      id: workspace.id,
+      members: memberCount,
+      name: staticWorkspace?.name ?? workspace.name,
+      previewMembers: workspaceMembers,
+      selected: staticWorkspace?.selected,
+    }
+  })
+
+  const handleAcceptInvite = (invite: (typeof invites)[number]) => {
+    addWorkspace({
+      id: `accepted-${invite.id}`,
+      name: invite.title,
+      createdAt: new Date().toISOString(),
+    })
+    setAcceptedInviteIds((current) => {
+      const nextIds = Array.from(new Set([...current, invite.id]))
+      localStorage.setItem(ACCEPTED_INVITES_STORAGE_KEY, JSON.stringify(nextIds))
+      return nextIds
+    })
+  }
+
+  const handleViewMembers = (workspaceId: string) => {
+    setActiveWorkspaceId(workspaceId)
+    navigate('/workspaces/members')
+  }
+
   return (
     <MainLayout header={<WorkspaceTopHeader />}>
       <div className="min-h-0 overflow-y-auto bg-[#fbfbff] px-7 py-6">
@@ -138,8 +212,12 @@ export function WorkspaceManagePage() {
             </div>
 
             <div className="grid grid-cols-3 gap-4 max-xl:grid-cols-2 max-md:grid-cols-1">
-              {workspaces.map((workspace) => (
-                <WorkspaceManageCard key={workspace.id} workspace={workspace} />
+              {displayedWorkspaces.map((workspace) => (
+                <WorkspaceManageCard
+                  key={workspace.id}
+                  onViewMembers={() => handleViewMembers(workspace.id)}
+                  workspace={workspace}
+                />
               ))}
             </div>
           </section>
@@ -151,8 +229,8 @@ export function WorkspaceManagePage() {
             </div>
 
             <div className="flex w-full flex-col gap-4">
-              {invites.map((invite) => (
-                <InviteCard invite={invite} key={invite.id} />
+              {pendingInvites.map((invite) => (
+                <InviteCard invite={invite} key={invite.id} onAccept={() => handleAcceptInvite(invite)} />
               ))}
             </div>
           </section>

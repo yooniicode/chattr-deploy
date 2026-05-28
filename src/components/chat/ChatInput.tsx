@@ -2,17 +2,18 @@ import { useState } from 'react'
 import { Bold, Code2, Italic, Link, Plus } from 'lucide-react'
 
 interface ChatInputProps {
+  compact?: boolean
   helperText?: string
 }
 
-export function ChatInput({ helperText }: ChatInputProps) {
+export function ChatInput({ compact = false, helperText }: ChatInputProps) {
   const [message, setMessage] = useState('')
   const [hasAttachment, setHasAttachment] = useState(false)
   const canSend = message.trim().length > 0 || hasAttachment
 
   return (
     <form
-      className="border-t border-slate-200 bg-[#fbfbff] px-6 py-4"
+      className={`border-t border-slate-200 bg-[#fbfbff] px-6 ${compact ? 'py-2.5' : 'py-4'}`}
       onSubmit={(event) => {
         event.preventDefault()
 
@@ -23,17 +24,17 @@ export function ChatInput({ helperText }: ChatInputProps) {
       }}
     >
       <div className="overflow-hidden rounded-xl border border-slate-300 bg-white shadow-lg shadow-slate-300/40">
-        <div className="flex h-9 items-center gap-3 border-b border-slate-200 px-4 text-slate-700">
+        <div className={`flex items-center gap-3 border-b border-slate-200 px-4 text-slate-700 ${compact ? 'h-8' : 'h-9'}`}>
           <Bold size={16} />
           <Italic size={16} />
           <Link size={16} />
           <span className="h-4 w-px bg-slate-300" />
           <Code2 size={17} />
         </div>
-        <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 px-4 py-3">
+        <div className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 px-4 ${compact ? 'py-2' : 'py-3'}`}>
           <label
             aria-label="Attach file"
-            className="grid size-9 cursor-pointer place-items-center rounded-md bg-slate-200 text-slate-700 hover:bg-slate-300"
+            className={`${compact ? 'size-8' : 'size-9'} grid cursor-pointer place-items-center rounded-md bg-slate-200 text-slate-700 hover:bg-slate-300`}
           >
             <Plus size={22} />
             <input
@@ -44,7 +45,7 @@ export function ChatInput({ helperText }: ChatInputProps) {
           </label>
           <input
             aria-label="Message"
-            className="min-h-10 bg-transparent text-sm outline-none placeholder:text-slate-400"
+            className={`${compact ? 'min-h-8' : 'min-h-10'} bg-transparent text-sm outline-none placeholder:text-slate-400`}
             onChange={(event) => setMessage(event.currentTarget.value)}
             placeholder="메시지를 입력하세요"
             value={message}
@@ -62,7 +63,7 @@ export function ChatInput({ helperText }: ChatInputProps) {
           </button>
         </div>
       </div>
-      {helperText ? <p className="mt-2 text-center text-xs text-slate-500">{helperText}</p> : null}
+      {helperText ? <p className={`${compact ? 'mt-1' : 'mt-2'} text-center text-xs text-slate-500`}>{helperText}</p> : null}
     </form>
   )
 }

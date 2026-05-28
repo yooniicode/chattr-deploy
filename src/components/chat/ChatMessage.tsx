@@ -2,6 +2,7 @@ import { Download, FileText, Image as ImageIcon } from 'lucide-react'
 import type { Message } from '../../types/message'
 import { formatDate } from '../../utils/formatDate'
 import { formatFileSize } from '../../utils/upload'
+import { getUserAvatarName, getUserDisplayName } from '../../utils/userDisplay'
 import { Avatar } from '../common/Avatar'
 
 interface ChatMessageProps {
@@ -11,7 +12,7 @@ interface ChatMessageProps {
 function MessageAvatar({ message }: ChatMessageProps) {
   return (
     <span className="relative inline-flex">
-      <Avatar name={message.author.name} size={36} src={message.author.avatarUrl} />
+      <Avatar name={getUserAvatarName(message.author)} size={36} src={message.author.avatarUrl} />
       {message.author.status === 'online' ? (
         <span className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-[#fbfbff] bg-emerald-500" />
       ) : null}
@@ -20,6 +21,8 @@ function MessageAvatar({ message }: ChatMessageProps) {
 }
 
 export function ChatMessage({ message }: ChatMessageProps) {
+  const authorName = getUserDisplayName(message.author)
+
   const handleReplyPreviewClick = () => {
     if (!message.parentMessageId) return
 
@@ -57,7 +60,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
         ) : null}
 
         <div className="flex items-baseline gap-2">
-          <strong className="shrink-0 whitespace-nowrap text-sm font-bold text-slate-950">{message.author.name}</strong>
+          <strong className="shrink-0 whitespace-nowrap text-sm font-bold text-slate-950">{authorName}</strong>
           <time className="text-xs font-medium text-slate-500" dateTime={message.createdAt}>
             {message.displayTime ?? formatDate(message.createdAt)}
           </time>

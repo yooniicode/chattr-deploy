@@ -1,21 +1,36 @@
 import { useState } from 'react'
-import { mockChannels } from '../../mocks/mockChannels'
-import { currentUserId, mockWorkspaceMembers } from '../../mocks/mockWorkspaceMembers'
-import type { Channel } from '../../types/channel'
+import { currentUserId } from '../../mocks/mockWorkspaceMembers'
+import { useChannelStore } from '../../stores/useChannelStore'
+import { useWorkspaceStore } from '../../stores/useWorkspaceStore'
+import type { WorkspaceMember } from '../../types/workspace'
 import { Avatar } from '../common/Avatar'
 import { ChannelItem } from '../channel/ChannelItem'
 import { WorkspaceRoleBadge } from '../workspace/WorkspaceRoleBadge'
 import { ChevronDown, Plus, UserPlus, X } from 'lucide-react'
 
-interface PendingWorkspaceMember {
-  id: string
-  name: string
+const CHANNEL_EXPANDED_STORAGE_KEY = 'chattr-channel-sidebar-expanded'
+const CHANNEL_UNREAD_STORAGE_KEY = 'chattr-channel-unread-counts'
+const DEFAULT_CHANNEL_UNREAD_COUNTS: Record<string, number> = {
+  'channel-2': 3,
+  'channel-4': 8,
+}
+
+const getInitialChannelExpanded = () => localStorage.getItem(CHANNEL_EXPANDED_STORAGE_KEY) !== 'false'
+
+const getInitialChannelUnreadCounts = () => {
+  try {
+    return JSON.parse(localStorage.getItem(CHANNEL_UNREAD_STORAGE_KEY) ?? 'null') ?? DEFAULT_CHANNEL_UNREAD_COUNTS
+  } catch {
+    return DEFAULT_CHANNEL_UNREAD_COUNTS
+  }
 }
 
 function CreateChannelModal({
+  members,
   onClose,
   onCreate,
 }: {
+  members: WorkspaceMember[]
   onClose: () => void
   onCreate: (channelName: string, memberIds: string[]) => void
 }) {
@@ -60,12 +75,12 @@ function CreateChannelModal({
           />
 
           <div className="mt-5 flex items-center justify-between">
-            <h3 className="text-sm font-extrabold text-slate-950">멤버 추가</h3>
+            <h3 className="text-sm font-bold text-slate-800">멤버 추가</h3>
             <span className="text-xs font-bold text-slate-500">{selectedMemberIds.length}명 선택</span>
           </div>
 
           <div className="mt-3 h-72 overflow-y-auto rounded-lg border border-slate-200 bg-[#fbfbff] p-2">
-            {mockWorkspaceMembers.map((member) => {
+            {members.map((member) => {
               const checked = selectedMemberIds.includes(member.user.id)
 
               return (
@@ -120,8 +135,8 @@ function AddWorkspaceMemberModal({
   onAdd,
   onClose,
 }: {
-  members: PendingWorkspaceMember[]
-  onAdd: (nickname: string) => void
+  members: WorkspaceMember[]
+  onAdd: (nickname: string) => WorkspaceMember
   onClose: () => void
 }) {
   const [nickname, setNickname] = useState('')
@@ -183,7 +198,7 @@ function AddWorkspaceMemberModal({
           </div>
 
           <div className="mt-5">
-            <h3 className="text-sm font-extrabold text-slate-950">추가된 멤버</h3>
+            <h3 className="text-sm font-bold text-slate-800">추가된 멤버</h3>
             <p className="mt-1 text-xs font-medium text-slate-500">
               추가된 멤버의 권한은 워크스페이스 설정 화면에서만 변경 가능합니다.
             </p>
@@ -196,8 +211,8 @@ function AddWorkspaceMemberModal({
                   className="flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-white"
                   key={member.id}
                 >
-                  <Avatar name={member.name} size={34} />
-                  <span className="min-w-0 flex-1 truncate text-sm font-bold text-slate-800">{member.name}</span>
+                  <Avatar name={member.user.name} size={34} src={member.user.avatarUrl} />
+                  <span className="min-w-0 flex-1 truncate text-sm font-bold text-slate-800">{member.user.name}</span>
                   <WorkspaceRoleBadge role="member" />
                 </div>
               ))
@@ -214,46 +229,69 @@ function AddWorkspaceMemberModal({
 }
 
 export function ChannelSidebar() {
-  const [expanded, setExpanded] = useState(true)
-  const [channels, setChannels] = useState<Channel[]>(mockChannels)
-  const [activeChannelId, setActiveChannelId] = useState(mockChannels[0]?.id)
+  const [expanded, setExpanded] = useState(getInitialChannelExpanded)
   const [createModalOpen, setCreateModalOpen] = useState(false)
   const [memberModalOpen, setMemberModalOpen] = useState(false)
-  const [pendingWorkspaceMembers, setPendingWorkspaceMembers] = useState<PendingWorkspaceMember[]>([])
+  const [addedMemberIds, setAddedMemberIds] = useState<string[]>([])
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>(getInitialChannelUnreadCounts)
+  const { activeChannelId, addChannel, channels, setActiveChannelId } = useChannelStore()
+  const { activeWorkspaceId = 'apollo', addWorkspaceMember, workspaceMembers } = useWorkspaceStore()
+  const activeWorkspace = useWorkspaceStore((state) =>
+    state.workspaces.find((workspace) => workspace.id === activeWorkspaceId),
+  )
+  const visibleChannels = channels.filter((channel) => channel.workspaceId === activeWorkspaceId)
+  const workspaceTitle =
+    activeWorkspaceId === 'apollo'
+      ? '프로젝트 APOLLO TF'
+      : activeWorkspaceId === '0602'
+        ? '0602 meeting 준비'
+        : activeWorkspaceId === 'pj5'
+          ? 'project5'
+          : (activeWorkspace?.name ?? '워크스페이스')
 
-  const handleCreateChannel = (channelName: string) => {
-    const newChannel: Channel = {
-      id: `channel-${Date.now()}`,
-      workspaceId: 'workspace-1',
-      name: channelName,
-      type: 'public',
-      createdAt: new Date().toISOString(),
-    }
-
-    setChannels((current) => [...current, newChannel])
-    setActiveChannelId(newChannel.id)
+  const handleCreateChannel = (channelName: string, memberIds: string[]) => {
+    addChannel(channelName, memberIds, activeWorkspaceId)
+    localStorage.setItem(CHANNEL_EXPANDED_STORAGE_KEY, 'true')
     setExpanded(true)
     setCreateModalOpen(false)
   }
 
   const handleAddWorkspaceMember = (nickname: string) => {
-    setPendingWorkspaceMembers((current) => [
-      ...current,
-      {
-        id: `pending-member-${Date.now()}`,
-        name: nickname,
-      },
-    ])
+    const member = addWorkspaceMember(nickname)
+    setAddedMemberIds((current) => [...current, member.id])
+    return member
   }
+
+  const handleSelectChannel = (channelId: string) => {
+    setActiveChannelId(channelId)
+    const nextCounts = { ...unreadCounts }
+    delete nextCounts[channelId]
+    localStorage.setItem(CHANNEL_UNREAD_STORAGE_KEY, JSON.stringify(nextCounts))
+    setUnreadCounts(nextCounts)
+  }
+
+  const handleToggleExpanded = () => {
+    setExpanded((current) => {
+      const nextExpanded = !current
+      localStorage.setItem(CHANNEL_EXPANDED_STORAGE_KEY, String(nextExpanded))
+      return nextExpanded
+    })
+  }
+
+  const addedMembers = workspaceMembers.filter((member) => addedMemberIds.includes(member.id))
 
   return (
     <aside className="h-screen min-w-60 overflow-hidden border-r border-slate-300 bg-[#f1f3fb] max-md:hidden">
       {createModalOpen ? (
-        <CreateChannelModal onClose={() => setCreateModalOpen(false)} onCreate={handleCreateChannel} />
+        <CreateChannelModal
+          members={workspaceMembers}
+          onClose={() => setCreateModalOpen(false)}
+          onCreate={handleCreateChannel}
+        />
       ) : null}
       {memberModalOpen ? (
         <AddWorkspaceMemberModal
-          members={pendingWorkspaceMembers}
+          members={addedMembers}
           onAdd={handleAddWorkspaceMember}
           onClose={() => setMemberModalOpen(false)}
         />
@@ -261,7 +299,7 @@ export function ChannelSidebar() {
 
       <header className="flex h-14 items-center justify-between border-b border-slate-300 px-4">
         <button className="flex items-center gap-1 whitespace-nowrap text-left text-sm font-extrabold text-slate-950" type="button">
-          <span>프로젝트 APOLLO TF</span>
+          <span>{workspaceTitle}</span>
         </button>
         <button
           className="text-slate-700 hover:text-[#0058BE]"
@@ -277,7 +315,7 @@ export function ChannelSidebar() {
         <div className="mb-2 flex items-center justify-between px-1 text-xs font-extrabold uppercase tracking-wide text-slate-600">
           <button
             className="flex items-center gap-1 text-left transition-colors hover:text-slate-950"
-            onClick={() => setExpanded((current) => !current)}
+            onClick={handleToggleExpanded}
             type="button"
           >
             <ChevronDown className={`shrink-0 transition-transform ${expanded ? '' : '-rotate-90'}`} size={13} />
@@ -294,13 +332,13 @@ export function ChannelSidebar() {
         </div>
         {expanded ? (
           <div className="flex flex-col gap-1">
-            {channels.map((channel, index) => (
+            {visibleChannels.map((channel) => (
               <ChannelItem
                 active={channel.id === activeChannelId}
                 channel={channel}
                 key={channel.id}
-                onClick={() => setActiveChannelId(channel.id)}
-                unreadCount={index === 1 ? 3 : index === 3 ? 8 : undefined}
+                onClick={() => handleSelectChannel(channel.id)}
+                unreadCount={unreadCounts[channel.id]}
               />
             ))}
           </div>

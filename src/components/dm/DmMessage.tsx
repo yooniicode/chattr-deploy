@@ -1,24 +1,11 @@
 import { Download, FileText } from 'lucide-react'
 import type { Message } from '../../types/message'
 import { formatFileSize } from '../../utils/upload'
+import { getUserAvatarName, getUserDisplayName, isCurrentUser } from '../../utils/userDisplay'
 import { Avatar } from '../common/Avatar'
 
 interface DmMessageProps {
   message: Message
-}
-
-function DmUserAvatar({ name, online }: { name: string; online?: boolean }) {
-  return (
-    <span className="relative inline-flex">
-      <span className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-xl bg-slate-950">
-        <span className="size-7 rounded-full bg-[radial-gradient(circle_at_65%_45%,#23d3bf_0,#0e7282_32%,#061827_70%)]" />
-      </span>
-      {online ? (
-        <span className="absolute bottom-0 right-0 size-2.5 rounded-full border-2 border-[#fbfbff] bg-emerald-500" />
-      ) : null}
-      <span className="sr-only">{name}</span>
-    </span>
-  )
 }
 
 export function DmMessage({ message }: DmMessageProps) {
@@ -32,7 +19,9 @@ export function DmMessage({ message }: DmMessageProps) {
     )
   }
 
-  const isMine = message.author.name === '나'
+  const isMine = isCurrentUser(message.author)
+  const authorName = getUserDisplayName(message.author)
+  const avatarName = getUserAvatarName(message.author)
 
   if (isMine) {
     return (
@@ -40,23 +29,28 @@ export function DmMessage({ message }: DmMessageProps) {
         <div className="text-right">
           <div className="mb-1 flex justify-end gap-2 text-[11px] font-medium text-slate-500">
             <time dateTime={message.createdAt}>{message.displayTime}</time>
-            <strong className="text-sm font-bold text-slate-950">{message.author.name}</strong>
+            <strong className="text-sm font-bold text-slate-950">{authorName}</strong>
           </div>
           <p className="rounded-lg bg-[#0058BE] px-3.5 py-2 text-xs font-medium leading-5 text-white shadow-md">
             {message.content}
           </p>
         </div>
-        <Avatar name={message.author.name} size={32} />
+        <Avatar name={avatarName} size={32} src={message.author.avatarUrl} />
       </article>
     )
   }
 
   return (
     <article className="flex max-w-md items-start gap-2.5">
-      <DmUserAvatar name={message.author.name} online={message.author.status === 'online'} />
+      <span className="relative inline-flex">
+        <Avatar name={avatarName} size={36} src={message.author.avatarUrl} />
+        {message.author.status === 'online' ? (
+          <span className="absolute bottom-0 right-0 size-2.5 rounded-full border-2 border-[#fbfbff] bg-emerald-500" />
+        ) : null}
+      </span>
       <div>
         <div className="mb-1 flex items-baseline gap-2">
-          <strong className="text-sm font-bold text-slate-950">{message.author.name}</strong>
+          <strong className="text-sm font-bold text-slate-950">{authorName}</strong>
           <time className="text-[11px] font-medium text-slate-500" dateTime={message.createdAt}>
             {message.displayTime}
           </time>
@@ -77,9 +71,7 @@ export function DmMessage({ message }: DmMessageProps) {
             </span>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-xs font-extrabold">{file.name}</span>
-              <span className="block text-[11px] font-medium text-slate-600">
-                {formatFileSize(file.size)} · PDF
-              </span>
+              <span className="block text-[11px] font-medium text-slate-600">{formatFileSize(file.size)} · PDF</span>
             </span>
             <Download className="text-slate-600" size={16} />
           </a>

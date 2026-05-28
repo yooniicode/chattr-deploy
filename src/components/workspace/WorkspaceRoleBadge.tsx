@@ -1,8 +1,9 @@
+import type { MouseEvent } from 'react'
 import type { WorkspaceRole } from '../../types/workspace'
 
 interface WorkspaceRoleBadgeProps {
   role: WorkspaceRole
-  onClick?: () => void
+  onClick?: (event: MouseEvent<HTMLButtonElement>) => void
 }
 
 export function WorkspaceRoleBadge({ role, onClick }: WorkspaceRoleBadgeProps) {
