@@ -115,7 +115,7 @@ export function ChatMessage({ message, onDelete, onEdit, onReply }: ChatMessageP
             </div>
           </div>
         ) : (
-          <p className="mt-1 text-sm leading-6 text-slate-800">{message.content}</p>
+          <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-slate-800">{message.content}</p>
         )}
 
         {message.attachments?.map((file) => (

@@ -1,9 +1,12 @@
-import { useState } from 'react'
+import { useState, type MouseEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Flag, Mail, MessageSquare, UserRoundCheck, Users } from 'lucide-react'
+import { Flag, Mail, MessageSquare, Trash2, UserRoundCheck, Users, X } from 'lucide-react'
 import { Avatar } from '../components/common/Avatar'
 import { Button } from '../components/common/Button'
 import { MainLayout } from '../components/layout/MainLayout'
+import { currentUserId } from '../mocks/mockWorkspaceMembers'
+import { useChannelStore } from '../stores/useChannelStore'
+import { useMessageStore } from '../stores/useMessageStore'
 import { useWorkspaceStore } from '../stores/useWorkspaceStore'
 import type { WorkspaceMember } from '../types/workspace'
 import { getWorkspaceAccent } from '../utils/workspaceAccent'
@@ -56,6 +59,11 @@ const getInitialAcceptedInviteIds = () => {
   }
 }
 
+interface PermissionNoticeState {
+  left: number
+  top: number
+}
+
 interface WorkspaceManageCardData {
   id: string
   badge: string
@@ -80,17 +88,27 @@ function WorkspaceTopHeader() {
 }
 
 function WorkspaceManageCard({
+  onDelete,
   onViewMembers,
   workspace,
 }: {
+  onDelete: (event: MouseEvent<HTMLButtonElement>) => void
   onViewMembers: () => void
   workspace: WorkspaceManageCardData
 }) {
   const visiblePreviewMembers = workspace.previewMembers.slice(0, Math.min(2, workspace.members))
 
   return (
-    <article className="group overflow-hidden rounded-lg border border-slate-300 bg-white transition-shadow hover:shadow-md">
+    <article className="group relative overflow-hidden rounded-lg border border-slate-300 bg-white transition-shadow hover:shadow-md">
       <div className="h-1" style={{ backgroundColor: workspace.accent }} />
+      <button
+        aria-label="워크스페이스 삭제"
+        className="absolute right-4 top-5 grid size-8 place-items-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-[#BA1A1A]"
+        onClick={onDelete}
+        type="button"
+      >
+        <Trash2 size={18} />
+      </button>
       <div className="p-4">
         <div className="grid size-9 place-items-center rounded-md bg-slate-200 text-xs font-extrabold text-slate-950">
           {workspace.badge}
@@ -155,11 +173,19 @@ function InviteCard({ invite, onAccept }: { invite: (typeof invites)[number]; on
 export function WorkspaceManagePage() {
   const navigate = useNavigate()
   const [acceptedInviteIds, setAcceptedInviteIds] = useState<string[]>(getInitialAcceptedInviteIds)
+  const [permissionNotice, setPermissionNotice] = useState<PermissionNoticeState | null>(null)
+  const { deleteWorkspaceChannels, channels } = useChannelStore()
+  const deleteChannelMessages = useMessageStore((state) => state.deleteChannelMessages)
   const addWorkspace = useWorkspaceStore((state) => state.addWorkspace)
+  const deleteWorkspace = useWorkspaceStore((state) => state.deleteWorkspace)
   const setActiveWorkspaceId = useWorkspaceStore((state) => state.setActiveWorkspaceId)
   const storedWorkspaces = useWorkspaceStore((state) => state.workspaces)
   const workspaceMembersByWorkspaceId = useWorkspaceStore((state) => state.workspaceMembersByWorkspaceId)
-  const pendingInvites = invites.filter((invite) => !acceptedInviteIds.includes(invite.id))
+  const pendingInvites = invites.filter((invite) => {
+    const acceptedWorkspaceExists = storedWorkspaces.some((workspace) => workspace.id === `accepted-${invite.id}`)
+
+    return !acceptedInviteIds.includes(invite.id) || !acceptedWorkspaceExists
+  })
 
   const displayedWorkspaces: WorkspaceManageCardData[] = storedWorkspaces.map((workspace, index) => {
     const staticWorkspace = staticWorkspaces.find((item) => item.id === workspace.id)
@@ -197,9 +223,55 @@ export function WorkspaceManagePage() {
     navigate('/workspaces/members')
   }
 
+  const showPermissionNotice = (event: MouseEvent<HTMLButtonElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect()
+    const popupWidth = 330
+    const popupHeight = 84
+
+    setPermissionNotice({
+      left: Math.max(16, Math.min(rect.right + 10, window.innerWidth - popupWidth - 16)),
+      top: Math.max(16, Math.min(rect.top - 10, window.innerHeight - popupHeight - 16)),
+    })
+  }
+
+  const handleDeleteWorkspace = (workspaceId: string, event: MouseEvent<HTMLButtonElement>) => {
+    const currentRole =
+      workspaceMembersByWorkspaceId[workspaceId]?.find((member) => member.user.id === currentUserId)?.role ?? 'member'
+
+    if (currentRole !== 'admin') {
+      showPermissionNotice(event)
+      return
+    }
+
+    channels
+      .filter((channel) => channel.workspaceId === workspaceId)
+      .forEach((channel) => deleteChannelMessages(channel.id))
+    deleteWorkspaceChannels(workspaceId)
+    deleteWorkspace(workspaceId)
+    setPermissionNotice(null)
+  }
+
   return (
     <MainLayout header={<WorkspaceTopHeader />}>
       <div className="min-h-0 overflow-y-auto bg-[#fbfbff] px-7 py-6">
+        {permissionNotice ? (
+          <div
+            className="fixed z-40 w-[20.625rem] rounded-lg border border-slate-300 bg-white p-3 text-xs font-bold leading-5 text-slate-700 shadow-xl"
+            style={{ left: permissionNotice.left, top: permissionNotice.top }}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <p>워크스페이스 삭제는 해당 워크스페이스의 admin 멤버만 가능합니다.</p>
+              <button
+                aria-label="워크스페이스 삭제 권한 안내 닫기"
+                className="shrink-0 text-slate-400 transition-colors hover:text-slate-700"
+                onClick={() => setPermissionNotice(null)}
+                type="button"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          </div>
+        ) : null}
         <div className="flex w-full flex-col gap-7">
           <section>
             <h1 className="text-base font-extrabold text-slate-950">workspace 설정</h1>
@@ -215,6 +287,7 @@ export function WorkspaceManagePage() {
               {displayedWorkspaces.map((workspace) => (
                 <WorkspaceManageCard
                   key={workspace.id}
+                  onDelete={(event) => handleDeleteWorkspace(workspace.id, event)}
                   onViewMembers={() => handleViewMembers(workspace.id)}
                   workspace={workspace}
                 />

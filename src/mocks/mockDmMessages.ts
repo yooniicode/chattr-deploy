@@ -69,15 +69,6 @@ export const mockDmMessagesByRoomId: Record<string, Message[]> = {
       author: hong,
     },
     {
-      id: 'dm-1-message-4',
-      roomId: 'dm-1',
-      type: 'text',
-      content: '여기까지 읽으셨습니다',
-      displayTime: '',
-      createdAt: '2026-05-26T14:20:00.000Z',
-      author: me,
-    },
-    {
       id: 'dm-1-message-5',
       roomId: 'dm-1',
       type: 'text',
@@ -147,18 +138,4 @@ export const mockDmMessagesByRoomId: Record<string, Message[]> = {
   ],
 }
 
-export const createDefaultDmMessages = (roomId: string, participant?: User): Message[] => {
-  if (!participant) return []
-
-  return [
-    {
-      id: `${roomId}-message-1`,
-      roomId,
-      type: 'text',
-      content: `${participant.name}님과의 DM을 시작했습니다.`,
-      displayTime: '방금 전',
-      createdAt: new Date().toISOString(),
-      author: participant,
-    },
-  ]
-}
+export const createDefaultDmMessages = (): Message[] => []

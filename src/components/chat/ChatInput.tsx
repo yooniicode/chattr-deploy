@@ -61,6 +61,7 @@ export function ChatInput({ compact = false, helperText, onCancelReply, onSend, 
             </button>
           </div>
         ) : null}
+
         <div className={`flex items-center gap-3 border-b border-slate-200 px-4 text-slate-700 ${compact ? 'h-8' : 'h-9'}`}>
           <Bold size={16} />
           <Italic size={16} />
@@ -68,6 +69,7 @@ export function ChatInput({ compact = false, helperText, onCancelReply, onSend, 
           <span className="h-4 w-px bg-slate-300" />
           <Code2 size={17} />
         </div>
+
         <div className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 px-4 ${compact ? 'py-2' : 'py-3'}`}>
           <label
             aria-label="Attach file"
@@ -81,13 +83,22 @@ export function ChatInput({ compact = false, helperText, onCancelReply, onSend, 
               type="file"
             />
           </label>
-          <input
+
+          <textarea
             aria-label="Message"
-            className={`${compact ? 'min-h-8' : 'min-h-10'} bg-transparent text-sm outline-none placeholder:text-slate-400`}
+            className={`${compact ? 'min-h-8' : 'min-h-10'} max-h-28 resize-none bg-transparent py-2 text-sm leading-5 outline-none placeholder:text-slate-400`}
             onChange={(event) => setMessage(event.currentTarget.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault()
+                handleSubmit()
+              }
+            }}
             placeholder="메시지를 입력하세요"
+            rows={1}
             value={message}
           />
+
           <button
             aria-label="Send message"
             className={`grid size-8 place-items-center rounded-md bg-[#0058BE] transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0058BE] focus-visible:ring-offset-2 ${

@@ -8,10 +8,17 @@ interface ChannelState {
   channels: Channel[]
   channelMemberIds: Record<string, string[]>
   activeChannelId?: string
+  openedUnreadCounts: Record<string, number>
+  unreadCounts: Record<string, number>
   addChannel: (name: string, memberIds: string[], workspaceId?: string) => Channel
   addChannelMembers: (channelId: string, memberIds: string[]) => void
+  clearOpenedUnreadCount: (channelId: string) => void
+  deleteChannel: (channelId: string) => void
+  deleteWorkspaceChannels: (workspaceId: string) => void
+  markChannelOpened: (channelId: string) => void
   setChannels: (channels: Channel[]) => void
   setActiveChannelId: (channelId?: string) => void
+  setUnreadCounts: (unreadCounts: Record<string, number>) => void
 }
 
 export const useChannelStore = create<ChannelState>()(
@@ -31,6 +38,11 @@ export const useChannelStore = create<ChannelState>()(
         'channel-pj5-3': [currentUserId, 'pj5-u8', 'pj5-u9', 'pj5-u10'],
       },
       activeChannelId: mockChannels[0]?.id,
+      openedUnreadCounts: {},
+      unreadCounts: {
+        'channel-2': 3,
+        'channel-4': 8,
+      },
       addChannel: (name, memberIds, workspaceId = 'apollo') => {
         const channel: Channel = {
           id: `channel-${Date.now()}`,
@@ -58,8 +70,79 @@ export const useChannelStore = create<ChannelState>()(
             [channelId]: Array.from(new Set([...(state.channelMemberIds[channelId] ?? []), ...memberIds])),
           },
         })),
+      clearOpenedUnreadCount: (channelId) =>
+        set((state) => {
+          const nextOpenedCounts = { ...state.openedUnreadCounts }
+          delete nextOpenedCounts[channelId]
+          return { openedUnreadCounts: nextOpenedCounts }
+        }),
+      deleteChannel: (channelId) =>
+        set((state) => {
+          const deletedChannel = state.channels.find((channel) => channel.id === channelId)
+          const nextChannels = state.channels.filter((channel) => channel.id !== channelId)
+          const nextChannelMemberIds = { ...state.channelMemberIds }
+          const nextOpenedUnreadCounts = { ...state.openedUnreadCounts }
+          const nextUnreadCounts = { ...state.unreadCounts }
+          delete nextChannelMemberIds[channelId]
+          delete nextOpenedUnreadCounts[channelId]
+          delete nextUnreadCounts[channelId]
+
+          const nextActiveChannelId =
+            state.activeChannelId === channelId
+              ? nextChannels.find((channel) => channel.workspaceId === deletedChannel?.workspaceId)?.id
+              : state.activeChannelId
+
+          return {
+            activeChannelId: nextActiveChannelId,
+            channelMemberIds: nextChannelMemberIds,
+            channels: nextChannels,
+            openedUnreadCounts: nextOpenedUnreadCounts,
+            unreadCounts: nextUnreadCounts,
+          }
+        }),
+      deleteWorkspaceChannels: (workspaceId) =>
+        set((state) => {
+          const deletedChannelIds = new Set(
+            state.channels.filter((channel) => channel.workspaceId === workspaceId).map((channel) => channel.id),
+          )
+          const nextChannels = state.channels.filter((channel) => !deletedChannelIds.has(channel.id))
+          const nextChannelMemberIds = { ...state.channelMemberIds }
+          const nextOpenedUnreadCounts = { ...state.openedUnreadCounts }
+          const nextUnreadCounts = { ...state.unreadCounts }
+
+          deletedChannelIds.forEach((channelId) => {
+            delete nextChannelMemberIds[channelId]
+            delete nextOpenedUnreadCounts[channelId]
+            delete nextUnreadCounts[channelId]
+          })
+
+          return {
+            activeChannelId: state.activeChannelId && deletedChannelIds.has(state.activeChannelId) ? nextChannels[0]?.id : state.activeChannelId,
+            channelMemberIds: nextChannelMemberIds,
+            channels: nextChannels,
+            openedUnreadCounts: nextOpenedUnreadCounts,
+            unreadCounts: nextUnreadCounts,
+          }
+        }),
+      markChannelOpened: (channelId) =>
+        set((state) => {
+          const unreadCount = state.unreadCounts[channelId] ?? 0
+          const nextUnreadCounts = { ...state.unreadCounts }
+          const nextOpenedCounts = { ...state.openedUnreadCounts }
+          delete nextUnreadCounts[channelId]
+          if (unreadCount > 0) {
+            nextOpenedCounts[channelId] = unreadCount
+          }
+
+          return {
+            activeChannelId: channelId,
+            openedUnreadCounts: nextOpenedCounts,
+            unreadCounts: nextUnreadCounts,
+          }
+        }),
       setChannels: (channels) => set({ channels }),
       setActiveChannelId: (activeChannelId) => set({ activeChannelId }),
+      setUnreadCounts: (unreadCounts) => set({ unreadCounts }),
     }),
     {
       name: 'chattr-channel-store',
@@ -67,6 +150,8 @@ export const useChannelStore = create<ChannelState>()(
         activeChannelId: state.activeChannelId,
         channelMemberIds: state.channelMemberIds,
         channels: state.channels,
+        openedUnreadCounts: state.openedUnreadCounts,
+        unreadCounts: state.unreadCounts,
       }),
     },
   ),

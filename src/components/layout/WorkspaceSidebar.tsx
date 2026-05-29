@@ -9,6 +9,7 @@ import { useAuthStore } from '../../stores/useAuthStore'
 import { useChannelStore } from '../../stores/useChannelStore'
 import { useDmStore } from '../../stores/useDmStore'
 import { useWorkspaceStore } from '../../stores/useWorkspaceStore'
+import type { User } from '../../types/user'
 import type { WorkspaceMember } from '../../types/workspace'
 import { clearTokens } from '../../utils/token'
 import { currentUserName } from '../../utils/userDisplay'
@@ -18,14 +19,12 @@ interface PermissionNoticeState {
   top: number
 }
 
-const createWorkspaceOwner = (): WorkspaceMember => ({
+const createWorkspaceOwner = (user: User): WorkspaceMember => ({
   id: 'new-workspace-owner',
   joinedAt: new Date().toISOString(),
   role: 'admin',
   user: {
-    id: currentUserId,
-    email: 'kim.chattr@example.com',
-    name: '김채트',
+    ...user,
     status: 'online',
   },
 })
@@ -33,13 +32,15 @@ const createWorkspaceOwner = (): WorkspaceMember => ({
 function CreateWorkspaceModal({
   onClose,
   onCreate,
+  owner,
 }: {
   onClose: () => void
   onCreate: (name: string, members: WorkspaceMember[]) => void
+  owner: User
 }) {
   const [workspaceName, setWorkspaceName] = useState('')
   const [memberNickname, setMemberNickname] = useState('')
-  const [members, setMembers] = useState<WorkspaceMember[]>(() => [createWorkspaceOwner()])
+  const [members, setMembers] = useState<WorkspaceMember[]>(() => [createWorkspaceOwner(owner)])
   const [permissionNotice, setPermissionNotice] = useState<PermissionNoticeState | null>(null)
   const canCreate = workspaceName.trim().length > 0
   const canAddMember = memberNickname.trim().length > 0
@@ -92,7 +93,7 @@ function CreateWorkspaceModal({
     onCreate(workspaceName.trim(), members)
     setWorkspaceName('')
     setMemberNickname('')
-    setMembers([createWorkspaceOwner()])
+    setMembers([createWorkspaceOwner(owner)])
   }
 
   return (
@@ -255,10 +256,27 @@ export function WorkspaceSidebar() {
   const totalDmUnreadCount = useDmStore((state) =>
     Object.values(state.unreadCounts).reduce((total, count) => total + count, 0),
   )
-  const { activeWorkspaceId, addWorkspace, setActiveWorkspaceId, workspaceMembers, workspaces } = useWorkspaceStore()
-  const { channels, setActiveChannelId } = useChannelStore()
-  const currentMember = workspaceMembers.find((member) => member.user.id === currentUserId)
-  const currentProfileName = currentMember?.user.name ?? currentUserName
+  const {
+    activeWorkspaceId,
+    addWorkspace,
+    setActiveWorkspaceId,
+    workspaceMembers,
+    workspaceMembersByWorkspaceId,
+    workspaces,
+  } = useWorkspaceStore()
+  const { channels, setActiveChannelId, unreadCounts: channelUnreadCounts } = useChannelStore()
+  const currentMember =
+    Object.values(workspaceMembersByWorkspaceId)
+      .flat()
+      .find((member) => member.user.id === currentUserId) ??
+    workspaceMembers.find((member) => member.user.id === currentUserId)
+  const currentUser: User = currentMember?.user ?? {
+    id: currentUserId,
+    email: 'kim.chattr@example.com',
+    name: currentUserName,
+    status: 'online',
+  }
+  const currentProfileName = currentUser.name
 
   const handleLogout = () => {
     clearTokens()
@@ -299,7 +317,11 @@ export function WorkspaceSidebar() {
       className="flex h-screen min-h-0 flex-col items-center border-r border-slate-300 bg-[#e7eaf2] px-2 py-4"
     >
       {createWorkspaceOpen ? (
-        <CreateWorkspaceModal onClose={() => setCreateWorkspaceOpen(false)} onCreate={handleCreateWorkspace} />
+        <CreateWorkspaceModal
+          onClose={() => setCreateWorkspaceOpen(false)}
+          onCreate={handleCreateWorkspace}
+          owner={currentUser}
+        />
       ) : null}
 
       <div className="flex flex-col items-center gap-3">
@@ -308,6 +330,9 @@ export function WorkspaceSidebar() {
             active={isChatPage && workspace.id === activeWorkspaceId}
             key={workspace.id}
             onClick={() => handleWorkspaceSelect(workspace.id)}
+            unreadCount={channels
+              .filter((channel) => channel.workspaceId === workspace.id)
+              .reduce((total, channel) => total + (channelUnreadCounts[channel.id] ?? 0), 0)}
             workspace={workspace}
           />
         ))}
@@ -387,7 +412,7 @@ export function WorkspaceSidebar() {
           onClick={() => navigate('/profile')}
           type="button"
         >
-          <Avatar name={currentProfileName} size={38} src={currentMember?.user.avatarUrl} />
+          <Avatar name={currentProfileName} size={38} src={currentUser.avatarUrl} />
         </button>
         <button
           aria-label="Logout"

@@ -1,5 +1,5 @@
-import { UserPlus, X } from 'lucide-react'
-import { useState } from 'react'
+import { Trash2, UserPlus, X } from 'lucide-react'
+import { useState, type MouseEvent } from 'react'
 import { ChatInput } from '../components/chat/ChatInput'
 import { MessageList } from '../components/chat/MessageList'
 import { Avatar } from '../components/common/Avatar'
@@ -116,16 +116,61 @@ function ChannelMemberModal({ onClose }: { onClose: () => void }) {
 
 function ChannelHeader() {
   const [memberModalOpen, setMemberModalOpen] = useState(false)
-  const { activeChannelId, channels } = useChannelStore()
-  const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId)
+  const [permissionNotice, setPermissionNotice] = useState<{ left: number; top: number } | null>(null)
+  const { activeChannelId, channels, deleteChannel } = useChannelStore()
+  const deleteChannelMessages = useMessageStore((state) => state.deleteChannelMessages)
+  const { activeWorkspaceId, workspaceMembers } = useWorkspaceStore()
   const activeChannel = channels.find(
     (channel) => channel.id === activeChannelId && channel.workspaceId === activeWorkspaceId,
   )
   const hasActiveChannel = Boolean(activeChannel)
+  const currentRole = workspaceMembers.find((member) => member.user.id === currentUserId)?.role ?? 'member'
+
+  const showPermissionNotice = (event: MouseEvent<HTMLButtonElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect()
+    const popupWidth = 300
+    const popupHeight = 84
+
+    setPermissionNotice({
+      left: Math.max(16, Math.min(rect.right + 10, window.innerWidth - popupWidth - 16)),
+      top: Math.max(16, Math.min(rect.top - 10, window.innerHeight - popupHeight - 16)),
+    })
+  }
+
+  const handleDeleteChannel = (event: MouseEvent<HTMLButtonElement>) => {
+    if (!activeChannel) return
+
+    if (currentRole !== 'admin') {
+      showPermissionNotice(event)
+      return
+    }
+
+    deleteChannelMessages(activeChannel.id)
+    deleteChannel(activeChannel.id)
+    setPermissionNotice(null)
+  }
 
   return (
     <header className="flex h-14 items-center justify-between border-b border-slate-300 bg-[#fbfbff] px-6">
       {memberModalOpen && hasActiveChannel ? <ChannelMemberModal onClose={() => setMemberModalOpen(false)} /> : null}
+      {permissionNotice ? (
+        <div
+          className="fixed z-40 w-[18.75rem] rounded-lg border border-slate-300 bg-white p-3 text-xs font-bold leading-5 text-slate-700 shadow-xl"
+          style={{ left: permissionNotice.left, top: permissionNotice.top }}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <p>채널 삭제는 해당 워크스페이스의 admin 멤버만 가능합니다.</p>
+            <button
+              aria-label="채널 삭제 권한 안내 닫기"
+              className="shrink-0 text-slate-400 transition-colors hover:text-slate-700"
+              onClick={() => setPermissionNotice(null)}
+              type="button"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        </div>
+      ) : null}
       <h1 className="flex items-center gap-2 text-sm font-extrabold text-slate-950">
         {activeChannel ? (
           <>
@@ -136,15 +181,26 @@ function ChannelHeader() {
           <span className="text-slate-500">채널 없음</span>
         )}
       </h1>
-      <button
-        aria-label="채널 멤버 추가"
-        className="text-slate-700 hover:text-[#0058BE] disabled:cursor-not-allowed disabled:opacity-35"
-        disabled={!hasActiveChannel}
-        onClick={() => setMemberModalOpen(true)}
-        type="button"
-      >
-        <UserPlus size={20} />
-      </button>
+      <div className="flex items-center gap-3">
+        <button
+          aria-label="채널 멤버 추가"
+          className="grid size-7 place-items-center text-slate-700 hover:text-[#0058BE] disabled:cursor-not-allowed disabled:opacity-35"
+          disabled={!hasActiveChannel}
+          onClick={() => setMemberModalOpen(true)}
+          type="button"
+        >
+          <UserPlus size={20} />
+        </button>
+        <button
+          aria-label="채널 삭제"
+          className="grid size-7 place-items-center text-slate-700 hover:text-[#BA1A1A] disabled:cursor-not-allowed disabled:opacity-35"
+          disabled={!hasActiveChannel}
+          onClick={handleDeleteChannel}
+          type="button"
+        >
+          <Trash2 size={20} />
+        </button>
+      </div>
     </header>
   )
 }
@@ -189,7 +245,7 @@ function applyChannelMemberAuthors(messages: Message[], members: WorkspaceMember
 }
 
 export function ChatPage() {
-  const { activeChannelId, channelMemberIds, channels } = useChannelStore()
+  const { activeChannelId, channelMemberIds, channels, clearOpenedUnreadCount, openedUnreadCounts } = useChannelStore()
   const { channelMessagesByRoomId, updateChannelMessages } = useMessageStore()
   const { activeWorkspaceId, workspaceMembers } = useWorkspaceStore()
   const [replyTarget, setReplyTarget] = useState<Message | null>(null)
@@ -249,7 +305,13 @@ export function ChatPage() {
                 ),
               )
             }
+            onReadToBottom={() => {
+              if (activeChannel) {
+                clearOpenedUnreadCount(activeChannel.id)
+              }
+            }}
             onReplyMessage={setReplyTarget}
+            unreadCount={activeChannel ? openedUnreadCounts[activeChannel.id] : 0}
           />
           <ChatInput onCancelReply={() => setReplyTarget(null)} onSend={handleSendMessage} replyTarget={replyTarget} />
         </>

@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { mockWorkspaces } from '../mocks/mockWorkspace'
 import { currentUserId, mockWorkspaceMembersByWorkspaceId } from '../mocks/mockWorkspaceMembers'
+import type { User } from '../types/user'
 import type { Workspace, WorkspaceMember } from '../types/workspace'
 
 interface WorkspaceState {
@@ -11,6 +12,7 @@ interface WorkspaceState {
   activeWorkspaceId?: string
   addWorkspace: (workspace: Workspace, members?: WorkspaceMember[]) => void
   addWorkspaceMember: (nickname: string) => WorkspaceMember
+  deleteWorkspace: (workspaceId: string) => void
   updateCurrentUserProfile: (profile: { avatarUrl?: string; email: string; name: string }) => void
   updateWorkspaceMemberRole: (memberId: string, role: WorkspaceMember['role']) => void
   setWorkspaces: (workspaces: Workspace[]) => void
@@ -18,7 +20,7 @@ interface WorkspaceState {
   setActiveWorkspaceId: (workspaceId: string) => void
 }
 
-const createDefaultWorkspaceMembers = (workspaceId: string): WorkspaceMember[] => [
+const createDefaultWorkspaceMembers = (workspaceId: string, user?: User): WorkspaceMember[] => [
   {
     id: `${workspaceId}-member-current`,
     joinedAt: new Date().toISOString(),
@@ -27,6 +29,7 @@ const createDefaultWorkspaceMembers = (workspaceId: string): WorkspaceMember[] =
       id: currentUserId,
       email: 'kim.chattr@example.com',
       name: '김채트',
+      ...user,
       status: 'online',
     },
   },
@@ -41,7 +44,10 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       activeWorkspaceId: mockWorkspaces[0]?.id,
       addWorkspace: (workspace, members) =>
         set((state) => {
-          const workspaceMembers = members ?? createDefaultWorkspaceMembers(workspace.id)
+          const currentUser = Object.values(state.workspaceMembersByWorkspaceId)
+            .flat()
+            .find((member) => member.user.id === currentUserId)?.user
+          const workspaceMembers = members ?? createDefaultWorkspaceMembers(workspace.id, currentUser)
 
           return {
             workspaces: state.workspaces.some((item) => item.id === workspace.id)
@@ -83,6 +89,21 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         })
         return member
       },
+      deleteWorkspace: (workspaceId) =>
+        set((state) => {
+          const nextWorkspaces = state.workspaces.filter((workspace) => workspace.id !== workspaceId)
+          const nextMembersByWorkspaceId = { ...state.workspaceMembersByWorkspaceId }
+          delete nextMembersByWorkspaceId[workspaceId]
+          const nextActiveWorkspaceId =
+            state.activeWorkspaceId === workspaceId ? nextWorkspaces[0]?.id : state.activeWorkspaceId
+
+          return {
+            activeWorkspaceId: nextActiveWorkspaceId,
+            workspaceMembers: nextActiveWorkspaceId ? (nextMembersByWorkspaceId[nextActiveWorkspaceId] ?? []) : [],
+            workspaceMembersByWorkspaceId: nextMembersByWorkspaceId,
+            workspaces: nextWorkspaces,
+          }
+        }),
       updateCurrentUserProfile: (profile) =>
         set((state) => {
           const updateMembers = (members: WorkspaceMember[]) =>

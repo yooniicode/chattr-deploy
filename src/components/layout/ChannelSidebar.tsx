@@ -9,21 +9,8 @@ import { WorkspaceRoleBadge } from '../workspace/WorkspaceRoleBadge'
 import { ChevronDown, Plus, UserPlus, X } from 'lucide-react'
 
 const CHANNEL_EXPANDED_STORAGE_KEY = 'chattr-channel-sidebar-expanded'
-const CHANNEL_UNREAD_STORAGE_KEY = 'chattr-channel-unread-counts'
-const DEFAULT_CHANNEL_UNREAD_COUNTS: Record<string, number> = {
-  'channel-2': 3,
-  'channel-4': 8,
-}
 
 const getInitialChannelExpanded = () => localStorage.getItem(CHANNEL_EXPANDED_STORAGE_KEY) !== 'false'
-
-const getInitialChannelUnreadCounts = () => {
-  try {
-    return JSON.parse(localStorage.getItem(CHANNEL_UNREAD_STORAGE_KEY) ?? 'null') ?? DEFAULT_CHANNEL_UNREAD_COUNTS
-  } catch {
-    return DEFAULT_CHANNEL_UNREAD_COUNTS
-  }
-}
 
 function CreateChannelModal({
   members,
@@ -233,8 +220,7 @@ export function ChannelSidebar() {
   const [createModalOpen, setCreateModalOpen] = useState(false)
   const [memberModalOpen, setMemberModalOpen] = useState(false)
   const [addedMemberIds, setAddedMemberIds] = useState<string[]>([])
-  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>(getInitialChannelUnreadCounts)
-  const { activeChannelId, addChannel, channels, setActiveChannelId } = useChannelStore()
+  const { activeChannelId, addChannel, channels, markChannelOpened, unreadCounts } = useChannelStore()
   const { activeWorkspaceId = 'apollo', addWorkspaceMember, workspaceMembers } = useWorkspaceStore()
   const activeWorkspace = useWorkspaceStore((state) =>
     state.workspaces.find((workspace) => workspace.id === activeWorkspaceId),
@@ -263,11 +249,7 @@ export function ChannelSidebar() {
   }
 
   const handleSelectChannel = (channelId: string) => {
-    setActiveChannelId(channelId)
-    const nextCounts = { ...unreadCounts }
-    delete nextCounts[channelId]
-    localStorage.setItem(CHANNEL_UNREAD_STORAGE_KEY, JSON.stringify(nextCounts))
-    setUnreadCounts(nextCounts)
+    markChannelOpened(channelId)
   }
 
   const handleToggleExpanded = () => {

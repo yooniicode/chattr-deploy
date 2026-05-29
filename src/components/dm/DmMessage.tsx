@@ -17,16 +17,6 @@ export function DmMessage({ message, onDelete, onEdit, onReply }: DmMessageProps
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(message.content)
 
-  if (message.content === '여기까지 읽으셨습니다') {
-    return (
-      <div className="flex justify-center py-2">
-        <span className="rounded-full bg-red-50 px-4 py-1.5 text-xs font-bold text-red-500">
-          여기까지 읽으셨습니다
-        </span>
-      </div>
-    )
-  }
-
   const isMine = isCurrentUser(message.author)
   const authorName = getUserDisplayName(message.author)
   const avatarName = getUserAvatarName(message.author)
@@ -67,7 +57,7 @@ export function DmMessage({ message, onDelete, onEdit, onReply }: DmMessageProps
     <p
       className={
         isMine
-          ? 'ml-auto w-fit max-w-[min(32rem,70vw)] whitespace-pre-wrap break-words rounded-lg bg-[#0058BE] px-3.5 py-2 text-xs font-medium leading-5 text-white shadow-md'
+          ? 'ml-auto w-fit max-w-[min(32rem,70vw)] whitespace-pre-wrap break-words rounded-lg bg-[#0058BE] px-3.5 py-2 text-left text-xs font-medium leading-5 text-white shadow-md'
           : 'w-fit max-w-[min(32rem,70vw)] whitespace-pre-wrap break-words rounded-lg border border-slate-300 bg-[#ebeef7] px-3.5 py-2 text-xs font-medium leading-5 text-slate-950 shadow-sm'
       }
     >

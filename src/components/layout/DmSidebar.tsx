@@ -78,14 +78,11 @@ function CreateDmModal({
 export function DmSidebar() {
   const [createModalOpen, setCreateModalOpen] = useState(false)
   const [createError, setCreateError] = useState<string | undefined>()
-  const { activeRoomId, rooms, setActiveRoomId, setRooms, setUnreadCounts, unreadCounts } = useDmStore()
+  const { activeRoomId, markRoomOpened, rooms, setActiveRoomId, setRooms, unreadCounts } = useDmStore()
   const { workspaceMembers } = useWorkspaceStore()
 
   const handleSelectRoom = (roomId: string) => {
-    setActiveRoomId(roomId)
-    const nextCounts = { ...unreadCounts }
-    delete nextCounts[roomId]
-    setUnreadCounts(nextCounts)
+    markRoomOpened(roomId)
   }
 
   const handleCreateDm = (query: string) => {
