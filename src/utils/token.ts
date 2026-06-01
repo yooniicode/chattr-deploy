@@ -1,6 +1,7 @@
 const ACCESS_TOKEN_KEY = 'chattr.accessToken'
 const REFRESH_TOKEN_KEY = 'chattr.refreshToken'
 const ID_TOKEN_KEY = 'chattr.idToken'
+const USERNAME_KEY = 'chattr.username'
 
 export const getAccessToken = () => sessionStorage.getItem(ACCESS_TOKEN_KEY)
 
@@ -24,8 +25,19 @@ export const removeIdToken = () => {
   sessionStorage.removeItem(ID_TOKEN_KEY)
 }
 
+export const getUsername = () => sessionStorage.getItem(USERNAME_KEY)
+
+export const setUsername = (username: string) => {
+  sessionStorage.setItem(USERNAME_KEY, username)
+}
+
+export const clearUsername = () => {
+  sessionStorage.removeItem(USERNAME_KEY)
+}
+
 export const clearTokens = () => {
   sessionStorage.removeItem(ACCESS_TOKEN_KEY)
   sessionStorage.removeItem(REFRESH_TOKEN_KEY)
   removeIdToken()
+  clearUsername()
 }

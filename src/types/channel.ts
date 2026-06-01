@@ -6,5 +6,7 @@ export interface Channel {
   name: string
   type: ChannelType
   description?: string
+  topic?: string
+  createdById?: string
   createdAt: string
 }

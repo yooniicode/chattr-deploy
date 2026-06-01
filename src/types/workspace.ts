@@ -7,6 +7,7 @@ export interface Workspace {
   name: string
   imageUrl?: string
   createdAt: string
+  myRole?: 'ADMIN' | 'MEMBER'
 }
 
 export interface WorkspaceMember {

@@ -2,6 +2,20 @@ import type { User } from './user'
 
 export type MessageType = 'text' | 'file'
 
+export interface BackendMessage {
+  id: string
+  roomId: string
+  senderId: string
+  type: MessageType
+  content: string
+  attachments?: { fileUrl: string; fileName: string }[]
+  parentMessageId?: string
+  createdAt: string
+  updatedAt?: string
+  editedAt?: string
+  deletedAt?: string
+}
+
 export interface FileAttachment {
   id: string
   name: string
