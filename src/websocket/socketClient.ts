@@ -1,13 +1,13 @@
 import { Client } from '@stomp/stompjs'
 import SockJS from 'sockjs-client'
 import { useSocketStore } from '../stores/useSocketStore'
-import type { Message } from '../types/message'
+import type { BackendMessage } from '../types/message'
 import type { MessageSendRequest } from './socketTypes'
 
 class StompSocketClient {
   private client?: Client
   private activeSubscriptions = new Map<string, { unsubscribe: () => void }>()
-  private pendingRooms = new Map<string, (message: Message) => void>()
+  private pendingRooms = new Map<string, (message: BackendMessage) => void>()
 
   connect(accessToken: string) {
     if (this.client?.active) return
@@ -33,12 +33,12 @@ class StompSocketClient {
     this.client.activate()
   }
 
-  private doSubscribe(roomId: string, callback: (message: Message) => void) {
+  private doSubscribe(roomId: string, callback: (message: BackendMessage) => void) {
     if (!this.client?.connected) return
 
     const sub = this.client.subscribe(`/topic/rooms/${roomId}`, (frame) => {
       try {
-        const message = JSON.parse(frame.body) as Message
+        const message = JSON.parse(frame.body) as BackendMessage
         callback(message)
       } catch {
         // ignore malformed frames
@@ -48,7 +48,7 @@ class StompSocketClient {
     this.activeSubscriptions.set(roomId, sub)
   }
 
-  subscribe(roomId: string, callback: (message: Message) => void) {
+  subscribe(roomId: string, callback: (message: BackendMessage) => void) {
     this.pendingRooms.set(roomId, callback)
     if (this.client?.connected) {
       this.doSubscribe(roomId, callback)

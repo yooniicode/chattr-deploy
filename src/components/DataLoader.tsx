@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { mapMessage } from '../api/messageApi'
 import { useAuthStore } from '../stores/useAuthStore'
 import { useChannelStore } from '../stores/useChannelStore'
 import { useDmStore } from '../stores/useDmStore'
@@ -47,7 +48,9 @@ export function DataLoader() {
   useEffect(() => {
     if (!activeChannelId) return
     fetchChannelMessages(activeChannelId)
-    const unsubscribe = socketClient.subscribe(activeChannelId, (message) => {
+    const unsubscribe = socketClient.subscribe(activeChannelId, (raw) => {
+      const users = useWorkspaceStore.getState().workspaceMembers.map((m) => m.user)
+      const message = mapMessage(raw, users)
       useMessageStore.getState().updateChannelMessages(activeChannelId, (msgs) =>
         msgs.some((m) => m.id === message.id) ? msgs : [...msgs, message],
       )
@@ -58,7 +61,9 @@ export function DataLoader() {
   useEffect(() => {
     if (!activeRoomId) return
     fetchDmMessages(activeRoomId)
-    const unsubscribe = socketClient.subscribe(activeRoomId, (message) => {
+    const unsubscribe = socketClient.subscribe(activeRoomId, (raw) => {
+      const users = useWorkspaceStore.getState().workspaceMembers.map((m) => m.user)
+      const message = mapMessage(raw, users)
       useMessageStore.getState().updateDmMessages(activeRoomId, (msgs) =>
         msgs.some((m) => m.id === message.id) ? msgs : [...msgs, message],
       )

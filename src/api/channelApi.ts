@@ -1,22 +1,45 @@
 import { axiosInstance } from './axiosInstance'
-import type { Channel } from '../types/channel'
+import type { Channel, ChannelType } from '../types/channel'
 import type { User } from '../types/user'
+
+interface BackendChannel {
+  id: string
+  workspaceId: string
+  name: string
+  description?: string
+  topic?: string
+  createdById?: string
+  createdAt: string
+}
 
 interface PageResponse<T> {
   content?: T[]
 }
 
-const extractChannels = (response: Channel[] | PageResponse<Channel>) => {
+function mapChannel(raw: BackendChannel): Channel {
+  return {
+    id: raw.id,
+    workspaceId: raw.workspaceId,
+    name: raw.name,
+    type: 'public' as ChannelType,
+    description: raw.description,
+    topic: raw.topic,
+    createdById: raw.createdById,
+    createdAt: raw.createdAt,
+  }
+}
+
+const extractChannels = (response: BackendChannel[] | PageResponse<BackendChannel>): BackendChannel[] => {
   if (Array.isArray(response)) return response
   return response.content ?? []
 }
 
 export const channelApi = {
   getChannels: async (workspaceId: string) => {
-    const { data } = await axiosInstance.get<Channel[] | PageResponse<Channel>>('/channels', {
+    const { data } = await axiosInstance.get<BackendChannel[] | PageResponse<BackendChannel>>('/channels', {
       params: { workspaceId },
     })
-    return extractChannels(data)
+    return extractChannels(data).map(mapChannel)
   },
   getChannel: async (workspaceId: string, channelId: string) => {
     const { data } = await axiosInstance.get<Channel>(
