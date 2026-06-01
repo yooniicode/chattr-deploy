@@ -21,6 +21,7 @@ export function DataLoader() {
   )
 
   const fetchChannels = useChannelStore((state) => state.fetchChannels)
+  const fetchChannelMembers = useChannelStore((state) => state.fetchChannelMembers)
   const activeChannelId = useChannelStore((state) => state.activeChannelId)
 
   const fetchDmRooms = useDmStore((state) => state.fetchDmRooms)
@@ -48,6 +49,7 @@ export function DataLoader() {
   useEffect(() => {
     if (!activeChannelId) return
     fetchChannelMessages(activeChannelId)
+    fetchChannelMembers(activeChannelId)
     const unsubscribe = socketClient.subscribe(activeChannelId, (raw) => {
       const users = useWorkspaceStore.getState().workspaceMembers.map((m) => m.user)
       const message = mapMessage(raw, users)
@@ -56,7 +58,7 @@ export function DataLoader() {
       )
     })
     return unsubscribe
-  }, [activeChannelId, fetchChannelMessages])
+  }, [activeChannelId, fetchChannelMessages, fetchChannelMembers])
 
   useEffect(() => {
     if (!activeRoomId) return

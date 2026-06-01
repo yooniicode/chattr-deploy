@@ -1,5 +1,6 @@
 import { Trash2, UserPlus, X } from 'lucide-react'
 import { useState, type MouseEvent } from 'react'
+import { channelApi } from '../api/channelApi'
 import { messageApi } from '../api/messageApi'
 import { fileApi } from '../api/fileApi'
 import { ChatInput } from '../components/chat/ChatInput'
@@ -20,6 +21,8 @@ function ChannelMemberModal({ activeUserId, onClose }: { activeUserId: string; o
   const { workspaceMembers } = useWorkspaceStore()
   const currentChannelMemberIds = activeChannelId ? (channelMemberIds[activeChannelId] ?? []) : []
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>(currentChannelMemberIds)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const newMemberIds = selectedMemberIds.filter((memberId) => !currentChannelMemberIds.includes(memberId))
   const canAdd = Boolean(activeChannelId && newMemberIds.length > 0)
 
@@ -28,6 +31,22 @@ function ChannelMemberModal({ activeUserId, onClose }: { activeUserId: string; o
     setSelectedMemberIds((current) =>
       current.includes(memberId) ? current.filter((id) => id !== memberId) : [...current, memberId],
     )
+  }
+
+  const handleAdd = async () => {
+    if (!activeChannelId || !canAdd) return
+    setIsSubmitting(true)
+    setError(null)
+    try {
+      await Promise.all(newMemberIds.map((userId) => channelApi.addChannelMember(activeChannelId, userId)))
+      addChannelMembers(activeChannelId, newMemberIds)
+      onClose()
+    } catch (err) {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      setError(message ?? '멤버 추가 중 오류가 발생했습니다.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -96,17 +115,16 @@ function ChannelMemberModal({ activeUserId, onClose }: { activeUserId: string; o
             })}
           </div>
 
+          {error ? (
+            <p className="mt-3 text-xs font-medium text-red-500">{error}</p>
+          ) : null}
           <button
-            className="mt-5 h-10 w-full rounded-lg bg-[#0058BE] text-sm font-bold text-white transition-colors hover:bg-[#004EA8] disabled:cursor-not-allowed disabled:opacity-45"
-            disabled={!canAdd}
-            onClick={() => {
-              if (!activeChannelId || !canAdd) return
-              addChannelMembers(activeChannelId, newMemberIds)
-              onClose()
-            }}
+            className="mt-3 h-10 w-full rounded-lg bg-[#0058BE] text-sm font-bold text-white transition-colors hover:bg-[#004EA8] disabled:cursor-not-allowed disabled:opacity-45"
+            disabled={!canAdd || isSubmitting}
+            onClick={() => { void handleAdd() }}
             type="button"
           >
-            멤버 추가
+            {isSubmitting ? '추가 중...' : '멤버 추가'}
           </button>
         </div>
       </section>
