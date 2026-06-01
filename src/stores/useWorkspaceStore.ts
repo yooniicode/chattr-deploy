@@ -3,13 +3,18 @@ import { workspaceApi } from '../api/workspaceApi'
 import type { User } from '../types/user'
 import type { Workspace, WorkspaceMember, WorkspaceRole } from '../types/workspace'
 
+const isValidWorkspace = (workspace: Workspace | null | undefined): workspace is Workspace =>
+  Boolean(workspace?.id)
+
+const isValidWorkspaceMember = (member: WorkspaceMember | null | undefined): member is WorkspaceMember =>
+  Boolean(member?.id && member.user?.id)
+
 interface WorkspaceState {
   workspaces: Workspace[]
   workspaceMembers: WorkspaceMember[]
   workspaceMembersByWorkspaceId: Record<string, WorkspaceMember[]>
   activeWorkspaceId?: string
   addWorkspace: (workspace: Workspace, members?: WorkspaceMember[]) => void
-  addWorkspaceMember: (nickname: string) => WorkspaceMember
   deleteWorkspace: (workspaceId: string) => void
   updateCurrentUserProfile: (profile: { avatarUrl?: string; email: string; name: string; userId: string }) => void
   updateWorkspaceMemberRole: (memberId: string, role: WorkspaceRole) => void
@@ -32,48 +37,24 @@ export const useWorkspaceStore = create<WorkspaceState>()((set) => ({
   workspaceMembersByWorkspaceId: {},
   activeWorkspaceId: undefined,
   addWorkspace: (workspace, members) =>
-    set((state) => ({
-      workspaces: state.workspaces.some((item) => item.id === workspace.id)
-        ? state.workspaces
-        : [...state.workspaces, workspace],
-      workspaceMembersByWorkspaceId: state.workspaceMembersByWorkspaceId[workspace.id]
-        ? state.workspaceMembersByWorkspaceId
-        : {
-            ...state.workspaceMembersByWorkspaceId,
-            [workspace.id]: members ?? [],
-          },
-    })),
-  addWorkspaceMember: (nickname) => {
-    const now = Date.now()
-    const member: WorkspaceMember = {
-      id: `workspace-member-${now}`,
-      joinedAt: new Date(now).toISOString(),
-      role: 'member',
-      user: {
-        id: `workspace-user-${now}`,
-        email: `${now}@example.com`,
-        name: nickname,
-        status: 'offline',
-      },
-    }
-
     set((state) => {
-      const workspaceId = state.activeWorkspaceId ?? ''
-      if (!workspaceId) return {}
-      const nextMembers = [...(state.workspaceMembersByWorkspaceId[workspaceId] ?? []), member]
+      if (!isValidWorkspace(workspace)) return {}
+
       return {
-        workspaceMembers: nextMembers,
-        workspaceMembersByWorkspaceId: {
-          ...state.workspaceMembersByWorkspaceId,
-          [workspaceId]: nextMembers,
-        },
+        workspaces: state.workspaces.some((item) => item.id === workspace.id)
+          ? state.workspaces
+          : [...state.workspaces.filter(isValidWorkspace), workspace],
+        workspaceMembersByWorkspaceId: state.workspaceMembersByWorkspaceId[workspace.id]
+          ? state.workspaceMembersByWorkspaceId
+          : {
+              ...state.workspaceMembersByWorkspaceId,
+              [workspace.id]: (members ?? []).filter(isValidWorkspaceMember),
+            },
       }
-    })
-    return member
-  },
+    }),
   deleteWorkspace: (workspaceId) =>
     set((state) => {
-      const nextWorkspaces = state.workspaces.filter((workspace) => workspace.id !== workspaceId)
+      const nextWorkspaces = state.workspaces.filter(isValidWorkspace).filter((workspace) => workspace.id !== workspaceId)
       const nextMembersByWorkspaceId = { ...state.workspaceMembersByWorkspaceId }
       delete nextMembersByWorkspaceId[workspaceId]
       const nextActiveWorkspaceId =
@@ -134,33 +115,64 @@ export const useWorkspaceStore = create<WorkspaceState>()((set) => ({
         },
       }
     }),
-  setWorkspaces: (workspaces) => set({ workspaces }),
+  setWorkspaces: (workspaces) =>
+    set((state) => {
+      const nextWorkspaces = workspaces.filter(isValidWorkspace)
+      const activeWorkspaceExists = nextWorkspaces.some((workspace) => workspace.id === state.activeWorkspaceId)
+      const activeWorkspaceId = activeWorkspaceExists ? state.activeWorkspaceId : nextWorkspaces[0]?.id
+
+      return {
+        activeWorkspaceId,
+        workspaceMembers: activeWorkspaceId
+          ? (state.workspaceMembersByWorkspaceId[activeWorkspaceId] ?? []).filter(isValidWorkspaceMember)
+          : [],
+        workspaces: nextWorkspaces,
+      }
+    }),
   setWorkspaceMembers: (workspaceMembers) =>
     set((state) => {
+      const nextWorkspaceMembers = workspaceMembers.filter(isValidWorkspaceMember)
       const workspaceId = state.activeWorkspaceId ?? ''
-      if (!workspaceId) return { workspaceMembers }
+      if (!workspaceId) return { workspaceMembers: nextWorkspaceMembers }
       return {
-        workspaceMembers,
+        workspaceMembers: nextWorkspaceMembers,
         workspaceMembersByWorkspaceId: {
           ...state.workspaceMembersByWorkspaceId,
-          [workspaceId]: workspaceMembers,
+          [workspaceId]: nextWorkspaceMembers,
         },
       }
     }),
   setActiveWorkspaceId: (activeWorkspaceId) =>
-    set((state) => ({
-      activeWorkspaceId,
-      workspaceMembers: state.workspaceMembersByWorkspaceId[activeWorkspaceId] ?? [],
-    })),
+    set((state) => {
+      const nextWorkspaces = state.workspaces.filter(isValidWorkspace)
+      const nextActiveWorkspaceId = nextWorkspaces.some((workspace) => workspace.id === activeWorkspaceId)
+        ? activeWorkspaceId
+        : nextWorkspaces[0]?.id
+
+      return {
+        activeWorkspaceId: nextActiveWorkspaceId,
+        workspaceMembers: nextActiveWorkspaceId
+          ? (state.workspaceMembersByWorkspaceId[nextActiveWorkspaceId] ?? []).filter(isValidWorkspaceMember)
+          : [],
+      }
+    }),
   fetchWorkspaces: async () => {
-    const workspaces = await workspaceApi.getWorkspaces()
-    set((state) => ({
-      workspaces,
-      activeWorkspaceId: state.activeWorkspaceId ?? workspaces[0]?.id,
-    }))
+    const workspaces = (await workspaceApi.getWorkspaces()).filter(isValidWorkspace)
+    set((state) => {
+      const activeWorkspaceExists = workspaces.some((workspace) => workspace.id === state.activeWorkspaceId)
+      const activeWorkspaceId = activeWorkspaceExists ? state.activeWorkspaceId : workspaces[0]?.id
+
+      return {
+        workspaces,
+        activeWorkspaceId,
+        workspaceMembers: activeWorkspaceId
+          ? (state.workspaceMembersByWorkspaceId[activeWorkspaceId] ?? []).filter(isValidWorkspaceMember)
+          : [],
+      }
+    })
   },
   fetchMembers: async (workspaceId) => {
-    const members = await workspaceApi.getMembers(workspaceId)
+    const members = (await workspaceApi.getMembers(workspaceId)).filter(isValidWorkspaceMember)
     set((state) => ({
       workspaceMembers: state.activeWorkspaceId === workspaceId ? members : state.workspaceMembers,
       workspaceMembersByWorkspaceId: {

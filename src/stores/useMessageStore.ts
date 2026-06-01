@@ -18,6 +18,10 @@ interface MessageState {
   }) => void
 }
 
+function ensureMessageArray(messages: unknown): Message[] {
+  return Array.isArray(messages) ? messages : []
+}
+
 export const useMessageStore = create<MessageState>()((set) => ({
   channelMessagesByRoomId: {},
   dmMessagesByRoomId: {},
@@ -52,7 +56,7 @@ export const useMessageStore = create<MessageState>()((set) => ({
     set((state) => ({
       channelMessagesByRoomId: {
         ...state.channelMessagesByRoomId,
-        [channelId]: messages,
+        [channelId]: ensureMessageArray(messages),
       },
     }))
   },
@@ -61,7 +65,7 @@ export const useMessageStore = create<MessageState>()((set) => ({
     set((state) => ({
       dmMessagesByRoomId: {
         ...state.dmMessagesByRoomId,
-        [roomId]: messages,
+        [roomId]: ensureMessageArray(messages),
       },
     }))
   },

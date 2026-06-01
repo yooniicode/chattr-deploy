@@ -2,10 +2,21 @@ import { axiosInstance } from './axiosInstance'
 import type { Channel } from '../types/channel'
 import type { User } from '../types/user'
 
+interface PageResponse<T> {
+  content?: T[]
+}
+
+const extractChannels = (response: Channel[] | PageResponse<Channel>) => {
+  if (Array.isArray(response)) return response
+  return response.content ?? []
+}
+
 export const channelApi = {
   getChannels: async (workspaceId: string) => {
-    const { data } = await axiosInstance.get<Channel[]>(`/workspaces/${workspaceId}/channels`)
-    return data
+    const { data } = await axiosInstance.get<Channel[] | PageResponse<Channel>>('/channels', {
+      params: { workspaceId },
+    })
+    return extractChannels(data)
   },
   getChannel: async (workspaceId: string, channelId: string) => {
     const { data } = await axiosInstance.get<Channel>(

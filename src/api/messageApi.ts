@@ -3,12 +3,21 @@ import type { Message } from '../types/message'
 
 export type RoomType = 'CHANNEL' | 'DM'
 
+interface MessagePageResponse {
+  content?: Message[]
+}
+
+function extractMessages(response: Message[] | MessagePageResponse | null | undefined) {
+  if (Array.isArray(response)) return response
+  return response?.content ?? []
+}
+
 export const messageApi = {
   getMessages: async (roomId: string, roomType: RoomType, cursor?: string, size = 30) => {
     const params: Record<string, string | number> = { roomId, roomType, size }
     if (cursor) params.cursor = cursor
-    const { data } = await axiosInstance.get<Message[]>('/messages', { params })
-    return data
+    const { data } = await axiosInstance.get<Message[] | MessagePageResponse | null>('/messages', { params })
+    return extractMessages(data)
   },
   deleteMessage: async (messageId: string) => {
     await axiosInstance.delete(`/messages/${messageId}`)

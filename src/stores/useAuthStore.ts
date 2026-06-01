@@ -1,5 +1,4 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
 import { authApi } from '../api/authApi'
 import { userApi } from '../api/userApi'
 import { clearTokens, getIdToken, setAccessToken, setIdToken, setRefreshToken } from '../utils/token'
@@ -19,53 +18,42 @@ interface AuthState {
   restoreSession: () => Promise<void>
 }
 
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set) => ({
-      user: null,
-      isAuthenticated: false,
-      isSessionReady: false,
-      setUser: (user) => set({ user, isAuthenticated: Boolean(user) }),
-      login: async (email, password) => {
-        const tokens = await authApi.login({ email, password })
-        setIdToken(tokens.idToken)
-        setAccessToken(tokens.accessToken)
-        setRefreshToken(tokens.refreshToken)
-        const user = await userApi.getProfile()
-        set({ user, isAuthenticated: true, isSessionReady: true })
-      },
-      logout: async () => {
-        try {
-          await authApi.logout()
-        } finally {
-          clearTokens()
-          set({ user: null, isAuthenticated: false })
-          useWorkspaceStore.setState({ workspaces: [], workspaceMembers: [], workspaceMembersByWorkspaceId: {}, activeWorkspaceId: undefined })
-          useChannelStore.setState({ channels: [], channelMemberIds: {}, activeChannelId: undefined, openedUnreadCounts: {}, unreadCounts: {} })
-          useDmStore.setState({ rooms: [], activeRoomId: undefined, unreadCounts: {}, openedUnreadCounts: {} })
-          useMessageStore.setState({ channelMessagesByRoomId: {}, dmMessagesByRoomId: {} })
-        }
-      },
-      restoreSession: async () => {
-        if (!getIdToken()) {
-          set({ isSessionReady: true, isAuthenticated: false, user: null })
-          return
-        }
-        try {
-          const user = await userApi.getProfile()
-          set({ user, isAuthenticated: true, isSessionReady: true })
-        } catch {
-          clearTokens()
-          set({ user: null, isAuthenticated: false, isSessionReady: true })
-        }
-      },
-    }),
-    {
-      name: 'chattr-auth-store',
-      partialize: (state) => ({
-        user: state.user,
-        isAuthenticated: state.isAuthenticated,
-      }),
-    },
-  ),
-)
+export const useAuthStore = create<AuthState>()((set) => ({
+  user: null,
+  isAuthenticated: false,
+  isSessionReady: false,
+  setUser: (user) => set({ user, isAuthenticated: Boolean(user) }),
+  login: async (email, password) => {
+    const tokens = await authApi.login({ email, password })
+    setIdToken(tokens.idToken)
+    setAccessToken(tokens.accessToken)
+    setRefreshToken(tokens.refreshToken)
+    const user = await userApi.getProfile()
+    set({ user, isAuthenticated: true, isSessionReady: true })
+  },
+  logout: async () => {
+    try {
+      await authApi.logout()
+    } finally {
+      clearTokens()
+      set({ user: null, isAuthenticated: false })
+      useWorkspaceStore.setState({ workspaces: [], workspaceMembers: [], workspaceMembersByWorkspaceId: {}, activeWorkspaceId: undefined })
+      useChannelStore.setState({ channels: [], channelMemberIds: {}, activeChannelId: undefined, openedUnreadCounts: {}, unreadCounts: {} })
+      useDmStore.setState({ rooms: [], activeRoomId: undefined, unreadCounts: {}, openedUnreadCounts: {} })
+      useMessageStore.setState({ channelMessagesByRoomId: {}, dmMessagesByRoomId: {} })
+    }
+  },
+  restoreSession: async () => {
+    if (!getIdToken()) {
+      set({ isSessionReady: true, isAuthenticated: false, user: null })
+      return
+    }
+    try {
+      const user = await userApi.getProfile()
+      set({ user, isAuthenticated: true, isSessionReady: true })
+    } catch {
+      clearTokens()
+      set({ user: null, isAuthenticated: false, isSessionReady: true })
+    }
+  },
+}))

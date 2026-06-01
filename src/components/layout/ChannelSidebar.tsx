@@ -1,4 +1,7 @@
-﻿import { useState } from 'react'
+import { ChevronDown, Plus, UserPlus, X } from 'lucide-react'
+import { useState } from 'react'
+import { workspaceApi } from '../../api/workspaceApi'
+import { userApi } from '../../api/userApi'
 import { useAuthStore } from '../../stores/useAuthStore'
 import { useChannelStore } from '../../stores/useChannelStore'
 import { useWorkspaceStore } from '../../stores/useWorkspaceStore'
@@ -6,7 +9,6 @@ import type { WorkspaceMember } from '../../types/workspace'
 import { Avatar } from '../common/Avatar'
 import { ChannelItem } from '../channel/ChannelItem'
 import { WorkspaceRoleBadge } from '../workspace/WorkspaceRoleBadge'
-import { ChevronDown, Plus, UserPlus, X } from 'lucide-react'
 
 const CHANNEL_EXPANDED_STORAGE_KEY = 'chattr-channel-sidebar-expanded'
 
@@ -125,17 +127,24 @@ function AddWorkspaceMemberModal({
   onClose,
 }: {
   members: WorkspaceMember[]
-  onAdd: (nickname: string) => WorkspaceMember
+  onAdd: (query: string) => Promise<WorkspaceMember | undefined>
   onClose: () => void
 }) {
-  const [nickname, setNickname] = useState('')
-  const canAdd = nickname.trim().length > 0
+  const [query, setQuery] = useState('')
+  const [errorMessage, setErrorMessage] = useState('')
+  const canAdd = query.trim().length > 0
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!canAdd) return
 
-    onAdd(nickname.trim())
-    setNickname('')
+    setErrorMessage('')
+    const member = await onAdd(query.trim())
+    if (member) {
+      setQuery('')
+      return
+    }
+
+    setErrorMessage('일치하는 사용자를 찾을 수 없습니다.')
   }
 
   return (
@@ -145,7 +154,7 @@ function AddWorkspaceMemberModal({
           <div>
             <h2 className="text-base font-extrabold text-slate-950">워크스페이스 멤버 추가</h2>
             <p className="mt-1 text-xs font-medium text-slate-500">
-              닉네임을 입력해 워크스페이스에 초대할 멤버를 추가하세요.
+              닉네임 또는 이메일을 입력해 가입된 사용자를 초대하세요.
             </p>
           </div>
           <button
@@ -159,37 +168,38 @@ function AddWorkspaceMemberModal({
         </header>
 
         <div className="px-6 py-5">
-          <label className="block text-sm font-bold text-slate-800" htmlFor="workspace-member-nickname">
-            닉네임
+          <label className="block text-sm font-bold text-slate-800" htmlFor="workspace-member-query">
+            닉네임 또는 이메일
           </label>
           <div className="mt-2 flex items-center gap-3">
             <input
               className="h-10 min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium outline-none transition-colors placeholder:text-slate-400 focus:border-[#0058BE] focus:ring-2 focus:ring-[#0058BE]/20"
-              id="workspace-member-nickname"
-              onChange={(event) => setNickname(event.currentTarget.value)}
+              id="workspace-member-query"
+              onChange={(event) => setQuery(event.currentTarget.value)}
               onKeyDown={(event) => {
                 if (event.key === 'Enter') {
                   event.preventDefault()
-                  handleAdd()
+                  void handleAdd()
                 }
               }}
-              placeholder="예: 홍길동"
-              value={nickname}
+              placeholder="예: 홍길동 또는 user@example.com"
+              value={query}
             />
             <button
               className="h-10 rounded-lg bg-[#0058BE] px-5 text-sm font-bold text-white transition-colors hover:bg-[#004EA8] disabled:cursor-not-allowed disabled:opacity-45"
               disabled={!canAdd}
-              onClick={handleAdd}
+              onClick={() => void handleAdd()}
               type="button"
             >
               추가
             </button>
           </div>
+          {errorMessage ? <p className="mt-2 text-xs font-bold text-[#BA1A1A]">{errorMessage}</p> : null}
 
           <div className="mt-5">
             <h3 className="text-sm font-bold text-slate-800">추가된 멤버</h3>
             <p className="mt-1 text-xs font-medium text-slate-500">
-              추가된 멤버의 권한은 워크스페이스 설정 화면에서만 변경 가능합니다.
+              초대한 사용자가 수락하면 워크스페이스 멤버로 추가됩니다.
             </p>
           </div>
 
@@ -221,45 +231,60 @@ export function ChannelSidebar() {
   const [expanded, setExpanded] = useState(getInitialChannelExpanded)
   const [createModalOpen, setCreateModalOpen] = useState(false)
   const [memberModalOpen, setMemberModalOpen] = useState(false)
-  const [addedMemberIds, setAddedMemberIds] = useState<string[]>([])
+  const [addedMembers, setAddedMembers] = useState<WorkspaceMember[]>([])
   const authUser = useAuthStore((state) => state.user)
   const activeUserId = authUser?.id ?? ''
   const { activeChannelId, addChannel, channels, markChannelOpened, unreadCounts } = useChannelStore()
-  const { activeWorkspaceId, addWorkspaceMember, workspaceMembers } = useWorkspaceStore()
+  const { activeWorkspaceId, fetchMembers, workspaceMembers } = useWorkspaceStore()
   const activeWorkspace = useWorkspaceStore((state) =>
     state.workspaces.find((workspace) => workspace.id === activeWorkspaceId),
   )
   const visibleChannels = channels.filter((channel) => channel.workspaceId === activeWorkspaceId)
-  const workspaceTitle =
-    activeWorkspaceId === 'apollo'
-      ? '프로젝트 APOLLO TF'
-      : activeWorkspaceId === '0602'
-        ? '0602 meeting 준비'
-        : activeWorkspaceId === 'pj5'
-          ? 'project5'
-          : (activeWorkspace?.name ?? '워크스페이스')
+  const workspaceTitle = activeWorkspace?.name ?? '워크스페이스'
 
   const handleCreateChannel = (channelName: string, memberIds: string[]) => {
-    addChannel(channelName, memberIds, activeWorkspaceId)
+    if (!activeWorkspaceId) return
+
+    void addChannel(channelName, memberIds, activeWorkspaceId)
     localStorage.setItem(CHANNEL_EXPANDED_STORAGE_KEY, 'true')
     setExpanded(true)
     setCreateModalOpen(false)
   }
 
-  const handleAddWorkspaceMember = (nickname: string) => {
-    const member = addWorkspaceMember(nickname)
-    setAddedMemberIds((current) => [...current, member.id])
+  const handleAddWorkspaceMember = async (query: string) => {
+    if (!activeWorkspaceId) return undefined
+
+    const users = await userApi.searchUsers(query)
+    const user = users.find(
+      (item) =>
+        item.email.toLowerCase() === query.toLowerCase() ||
+        item.name.toLowerCase() === query.toLowerCase(),
+    ) ?? users[0]
+
+    if (!user) return undefined
+
+    await workspaceApi.inviteMember(activeWorkspaceId, user.email)
+
+    const member: WorkspaceMember = {
+      id: `invited-workspace-member-${user.id}`,
+      joinedAt: new Date().toISOString(),
+      role: 'member',
+      user,
+    }
+
+    setAddedMembers((current) => (current.some((item) => item.user.id === member.user.id) ? current : [...current, member]))
+    void fetchMembers(activeWorkspaceId)
     return member
   }
 
   const openMemberModal = () => {
-    setAddedMemberIds([])
+    setAddedMembers([])
     setMemberModalOpen(true)
   }
 
   const closeMemberModal = () => {
     setMemberModalOpen(false)
-    setAddedMemberIds([])
+    setAddedMembers([])
   }
 
   const handleSelectChannel = (channelId: string) => {
@@ -273,8 +298,6 @@ export function ChannelSidebar() {
       return nextExpanded
     })
   }
-
-  const addedMembers = workspaceMembers.filter((member) => addedMemberIds.includes(member.id))
 
   return (
     <aside className="h-screen min-w-60 overflow-hidden border-r border-slate-300 bg-[#f1f3fb] max-md:hidden">

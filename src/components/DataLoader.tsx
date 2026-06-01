@@ -10,10 +10,14 @@ import { socketClient } from '../websocket/socketClient'
 export function DataLoader() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
   const isSessionReady = useAuthStore((state) => state.isSessionReady)
+  const authUserId = useAuthStore((state) => state.user?.id)
 
   const fetchWorkspaces = useWorkspaceStore((state) => state.fetchWorkspaces)
   const fetchMembers = useWorkspaceStore((state) => state.fetchMembers)
   const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId)
+  const activeWorkspaceExists = useWorkspaceStore((state) =>
+    Boolean(state.activeWorkspaceId && state.workspaces.some((workspace) => workspace?.id === state.activeWorkspaceId)),
+  )
 
   const fetchChannels = useChannelStore((state) => state.fetchChannels)
   const activeChannelId = useChannelStore((state) => state.activeChannelId)
@@ -27,17 +31,18 @@ export function DataLoader() {
   useEffect(() => {
     if (!isSessionReady || !isAuthenticated) return
     fetchWorkspaces()
-    fetchDmRooms()
+    fetchDmRooms(authUserId)
     const token = getAccessToken()
     if (token) socketClient.connect(token)
     return () => { socketClient.disconnect() }
-  }, [isSessionReady, isAuthenticated, fetchWorkspaces, fetchDmRooms])
+  }, [isSessionReady, isAuthenticated, authUserId, fetchWorkspaces, fetchDmRooms])
 
   useEffect(() => {
     if (!activeWorkspaceId) return
+    if (!activeWorkspaceExists) return
     fetchChannels(activeWorkspaceId)
     fetchMembers(activeWorkspaceId)
-  }, [activeWorkspaceId, fetchChannels, fetchMembers])
+  }, [activeWorkspaceExists, activeWorkspaceId, fetchChannels, fetchMembers])
 
   useEffect(() => {
     if (!activeChannelId) return

@@ -1,4 +1,4 @@
-import { useState, type MouseEvent } from 'react'
+import { useMemo, useState, type MouseEvent } from 'react'
 import { AlertCircle, MessageSquare, UsersRound, X } from 'lucide-react'
 import { workspaceApi } from '../api/workspaceApi'
 import { MainLayout } from '../components/layout/MainLayout'
@@ -29,15 +29,25 @@ export function WorkspaceMemberPage() {
   const [permissionError, setPermissionError] = useState<PermissionErrorState | null>(null)
   const authUser = useAuthStore((state) => state.user)
   const activeUserId = authUser?.id ?? ''
-  const { activeWorkspaceId, updateWorkspaceMemberRole, workspaceMembers } = useWorkspaceStore()
-  const activeWorkspaceMembers = useWorkspaceStore(
-    (state) => (activeWorkspaceId ? (state.workspaceMembersByWorkspaceId[activeWorkspaceId] ?? workspaceMembers) : workspaceMembers),
+  const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId)
+  const updateWorkspaceMemberRole = useWorkspaceStore((state) => state.updateWorkspaceMemberRole)
+  const workspaceMembers = useWorkspaceStore((state) => state.workspaceMembers)
+  const workspaceMembersByWorkspaceId = useWorkspaceStore((state) => state.workspaceMembersByWorkspaceId)
+  const workspaces = useWorkspaceStore((state) => state.workspaces)
+  const activeWorkspaceMembers = useMemo(
+    () =>
+      (activeWorkspaceId ? (workspaceMembersByWorkspaceId[activeWorkspaceId] ?? workspaceMembers) : workspaceMembers).filter(
+        (member) => Boolean(member?.user?.id),
+      ),
+    [activeWorkspaceId, workspaceMembers, workspaceMembersByWorkspaceId],
   )
-  const activeWorkspace = useWorkspaceStore((state) =>
-    state.workspaces.find((workspace) => workspace.id === activeWorkspaceId),
+  const activeWorkspace = useMemo(
+    () => workspaces.find((workspace) => workspace?.id === activeWorkspaceId),
+    [activeWorkspaceId, workspaces],
   )
-  const activeWorkspaceIndex = useWorkspaceStore((state) =>
-    Math.max(0, state.workspaces.findIndex((workspace) => workspace.id === activeWorkspaceId)),
+  const activeWorkspaceIndex = useMemo(
+    () => Math.max(0, workspaces.findIndex((workspace) => workspace?.id === activeWorkspaceId)),
+    [activeWorkspaceId, workspaces],
   )
   const workspaceAccent = getWorkspaceAccent(activeWorkspaceIndex)
   const displayedMemberCount = activeWorkspaceMembers.length

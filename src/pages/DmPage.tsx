@@ -117,7 +117,8 @@ export function DmPage() {
   const activeRoom = rooms.find((room) => room.id === activeRoomId) ?? rooms[0]
   const participant = activeRoom?.participants.find((p) => p.id !== activeUserId) ?? activeRoom?.participants[0]
   const activeRoomIdValue = activeRoom?.id
-  const messages = activeRoomIdValue ? (dmMessagesByRoomId[activeRoomIdValue] ?? []) : []
+  const storedMessages = activeRoomIdValue ? dmMessagesByRoomId[activeRoomIdValue] : undefined
+  const messages = Array.isArray(storedMessages) ? storedMessages : []
 
   const updateActiveMessages = (updater: (messages: Message[]) => Message[]) => {
     if (!activeRoomIdValue) return

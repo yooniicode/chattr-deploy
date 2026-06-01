@@ -1,27 +1,27 @@
 import { useState } from 'react'
+import { X } from 'lucide-react'
+import { userApi } from '../../api/userApi'
 import { useDmStore } from '../../stores/useDmStore'
-import { useWorkspaceStore } from '../../stores/useWorkspaceStore'
-import type { DmRoom } from '../../types/dm'
 import { Button } from '../common/Button'
 import { DmRoomItem } from '../dm/DmRoomItem'
-import { X } from 'lucide-react'
 
 function CreateDmModal({
   error,
+  loading,
   onClose,
   onCreate,
 }: {
   error?: string
+  loading?: boolean
   onClose: () => void
-  onCreate: (query: string) => void
+  onCreate: (query: string) => Promise<void> | void
 }) {
   const [query, setQuery] = useState('')
-  const canCreate = query.trim().length > 0
+  const canCreate = query.trim().length > 0 && !loading
 
   const handleCreate = () => {
     if (!canCreate) return
-
-    onCreate(query.trim())
+    void onCreate(query.trim())
   }
 
   return (
@@ -68,7 +68,7 @@ function CreateDmModal({
           onClick={handleCreate}
           type="button"
         >
-          DM 추가
+          {loading ? '추가 중' : 'DM 추가'}
         </button>
       </div>
     </div>
@@ -78,54 +78,50 @@ function CreateDmModal({
 export function DmSidebar() {
   const [createModalOpen, setCreateModalOpen] = useState(false)
   const [createError, setCreateError] = useState<string | undefined>()
-  const { activeRoomId, markRoomOpened, rooms, setActiveRoomId, setRooms, unreadCounts } = useDmStore()
-  const { workspaceMembers } = useWorkspaceStore()
+  const [creating, setCreating] = useState(false)
+  const { activeRoomId, createRoom, markRoomOpened, rooms, setActiveRoomId, unreadCounts } = useDmStore()
 
   const handleSelectRoom = (roomId: string) => {
     markRoomOpened(roomId)
   }
 
-  const handleCreateDm = (query: string) => {
-    const normalizedQuery = query.toLowerCase()
-    const targetMember = workspaceMembers.find(
-      (member) =>
-        member.user.name.toLowerCase() === normalizedQuery || member.user.email.toLowerCase() === normalizedQuery,
-    )
+  const handleCreateDm = async (query: string) => {
+    const normalizedQuery = query.trim().toLowerCase()
+    if (!normalizedQuery) return
 
-    if (!targetMember) {
-      setCreateError('일치하는 멤버를 찾을 수 없습니다.')
-      return
-    }
+    setCreating(true)
+    setCreateError(undefined)
 
-    const existingRoom = rooms.find((room) => room.participants.some((user) => user.id === targetMember.user.id))
+    try {
+      const users = await userApi.searchUsers(query)
+      const targetUser =
+        users.find(
+          (user) => user.name.toLowerCase() === normalizedQuery || user.email.toLowerCase() === normalizedQuery,
+        ) ?? users[0]
 
-    if (existingRoom) {
-      setActiveRoomId(existingRoom.id)
+      if (!targetUser) {
+        setCreateError('일치하는 멤버를 찾을 수 없습니다.')
+        return
+      }
+
+      const existingRoom = rooms.find(
+        (room) =>
+          room.otherUserId === targetUser.id || room.participants.some((participant) => participant.id === targetUser.id),
+      )
+
+      if (existingRoom) {
+        setActiveRoomId(existingRoom.id)
+      } else {
+        await createRoom(targetUser)
+      }
+
       setCreateModalOpen(false)
       setCreateError(undefined)
-      return
+    } catch {
+      setCreateError('DM 생성에 실패했습니다.')
+    } finally {
+      setCreating(false)
     }
-
-    const now = Date.now()
-    const newRoomId = `dm-${now}`
-    const newRoom: DmRoom = {
-      id: newRoomId,
-      participants: [targetMember.user],
-      lastMessage: {
-        id: `dm-preview-${now}`,
-        roomId: newRoomId,
-        type: 'text',
-        content: '새 DM을 시작해보세요.',
-        createdAt: new Date(now).toISOString(),
-        author: targetMember.user,
-      },
-      updatedAt: new Date(now).toISOString(),
-    }
-
-    setRooms([newRoom, ...rooms])
-    setActiveRoomId(newRoom.id)
-    setCreateModalOpen(false)
-    setCreateError(undefined)
   }
 
   return (
@@ -133,6 +129,7 @@ export function DmSidebar() {
       {createModalOpen ? (
         <CreateDmModal
           error={createError}
+          loading={creating}
           onClose={() => {
             setCreateModalOpen(false)
             setCreateError(undefined)

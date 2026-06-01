@@ -8,7 +8,7 @@ interface ChannelState {
   activeChannelId?: string
   openedUnreadCounts: Record<string, number>
   unreadCounts: Record<string, number>
-  addChannel: (name: string, memberIds: string[], workspaceId?: string) => Channel
+  addChannel: (name: string, memberIds: string[], workspaceId: string) => Promise<Channel>
   addChannelMembers: (channelId: string, memberIds: string[]) => void
   clearOpenedUnreadCount: (channelId: string) => void
   deleteChannel: (channelId: string) => void
@@ -33,14 +33,21 @@ export const useChannelStore = create<ChannelState>()((set) => ({
   activeChannelId: undefined,
   openedUnreadCounts: {},
   unreadCounts: {},
-  addChannel: (name, memberIds, workspaceId = '') => {
-    const channel: Channel = {
-      id: `channel-${Date.now()}`,
-      workspaceId,
+  addChannel: async (name, memberIds, workspaceId) => {
+    const createdChannel = await channelApi.createChannel(workspaceId, {
+      description: '',
       name,
       type: 'public',
-      createdAt: new Date().toISOString(),
+    })
+    const channel: Channel = {
+      ...createdChannel,
+      workspaceId: createdChannel.workspaceId ?? workspaceId,
+      type: createdChannel.type ?? 'public',
     }
+
+    await Promise.all(
+      memberIds.map((memberId) => channelApi.addChannelMember(workspaceId, channel.id, memberId).catch(() => undefined)),
+    )
 
     set((state) => ({
       activeChannelId: channel.id,
