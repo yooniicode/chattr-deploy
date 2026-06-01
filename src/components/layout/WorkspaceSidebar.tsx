@@ -1,8 +1,7 @@
 import { LogOut, Plus, Settings, X } from 'lucide-react'
-import { useState, type MouseEvent } from 'react'
+import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { workspaceApi } from '../../api/workspaceApi'
-import { userApi } from '../../api/userApi'
 import { useAuthStore } from '../../stores/useAuthStore'
 import { useChannelStore } from '../../stores/useChannelStore'
 import { useDmStore } from '../../stores/useDmStore'
@@ -11,12 +10,6 @@ import type { User } from '../../types/user'
 import type { WorkspaceMember } from '../../types/workspace'
 import { Avatar } from '../common/Avatar'
 import { WorkspaceCard } from '../workspace/WorkspaceCard'
-import { WorkspaceRoleBadge } from '../workspace/WorkspaceRoleBadge'
-
-interface PermissionNoticeState {
-  left: number
-  top: number
-}
 
 const createWorkspaceOwner = (user: User): WorkspaceMember => ({
   id: 'new-workspace-owner',
@@ -31,91 +24,22 @@ const createWorkspaceOwner = (user: User): WorkspaceMember => ({
 function CreateWorkspaceModal({
   onClose,
   onCreate,
-  owner,
 }: {
   onClose: () => void
-  onCreate: (name: string, members: WorkspaceMember[]) => Promise<void>
-  owner: User
+  onCreate: (name: string) => Promise<void>
 }) {
   const [workspaceName, setWorkspaceName] = useState('')
-  const [memberQuery, setMemberQuery] = useState('')
-  const [members, setMembers] = useState<WorkspaceMember[]>(() => [createWorkspaceOwner(owner)])
-  const [permissionNotice, setPermissionNotice] = useState<PermissionNoticeState | null>(null)
   const [errorMessage, setErrorMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const canCreate = workspaceName.trim().length > 0 && !submitting
-  const canAddMember = memberQuery.trim().length > 0
-
-  const handleAddMember = async () => {
-    if (!canAddMember) return
-
-    const query = memberQuery.trim()
-    setErrorMessage('')
-
-    try {
-      const users = await userApi.searchUsers(query)
-      const user = users.find(
-        (item) =>
-          item.email.toLowerCase() === query.toLowerCase() ||
-          item.name.toLowerCase() === query.toLowerCase(),
-      ) ?? users[0]
-
-      if (!user) {
-        setErrorMessage('일치하는 사용자를 찾을 수 없습니다.')
-        return
-      }
-
-      if (members.some((member) => member.user.id === user.id)) {
-        setErrorMessage('이미 추가된 사용자입니다.')
-        return
-      }
-
-      setMembers((current) => [
-        ...current,
-        {
-          id: `pending-workspace-member-${user.id}`,
-          joinedAt: new Date().toISOString(),
-          role: 'member',
-          user,
-        },
-      ])
-      setMemberQuery('')
-    } catch {
-      setErrorMessage('사용자 검색에 실패했습니다.')
-    }
-  }
-
-  const handleRoleClick = (member: WorkspaceMember, event: MouseEvent<HTMLButtonElement>) => {
-    if (member.user.id === owner.id) {
-      const rect = event.currentTarget.getBoundingClientRect()
-      const popupWidth = 312
-      const popupHeight = 92
-
-      setPermissionNotice({
-        left: Math.max(16, Math.min(rect.right + 10, window.innerWidth - popupWidth - 16)),
-        top: Math.max(16, Math.min(rect.top - 8, window.innerHeight - popupHeight - 16)),
-      })
-      return
-    }
-
-    setPermissionNotice(null)
-    setMembers((current) =>
-      current.map((item) =>
-        item.id === member.id ? { ...item, role: item.role === 'admin' ? 'member' : 'admin' } : item,
-      ),
-    )
-  }
 
   const handleCreate = async () => {
     if (!canCreate) return
-
     setSubmitting(true)
     setErrorMessage('')
     try {
-      await onCreate(workspaceName.trim(), members)
+      await onCreate(workspaceName.trim())
       setWorkspaceName('')
-      setMemberQuery('')
-      setMembers([createWorkspaceOwner(owner)])
     } catch {
       setErrorMessage('워크스페이스 생성에 실패했습니다.')
     } finally {
@@ -125,34 +49,11 @@ function CreateWorkspaceModal({
 
   return (
     <div className="fixed inset-0 z-30 grid place-items-center bg-slate-950/25 px-4">
-      {permissionNotice ? (
-        <div
-          className="fixed z-40 w-[19.5rem] rounded-lg border border-slate-300 bg-white p-3 shadow-xl"
-          style={{ left: permissionNotice.left, top: permissionNotice.top }}
-        >
-          <div className="flex items-start justify-between gap-3">
-            <p className="text-xs font-bold leading-5 text-slate-700">
-              생성자의 admin 권한은 워크스페이스 멤버 설정 화면에서만 변경 가능합니다.
-            </p>
-            <button
-              aria-label="권한 안내 닫기"
-              className="shrink-0 text-slate-400 transition-colors hover:text-slate-700"
-              onClick={() => setPermissionNotice(null)}
-              type="button"
-            >
-              <X size={14} />
-            </button>
-          </div>
-        </div>
-      ) : null}
-
       <section className="w-full max-w-[34rem] overflow-hidden rounded-xl border border-slate-300 bg-white shadow-2xl shadow-slate-400/30">
         <header className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
           <div>
             <h2 className="text-base font-extrabold text-slate-950">워크스페이스 추가</h2>
-            <p className="mt-1 text-xs font-medium text-slate-500">
-              워크스페이스 이름과 참여 멤버를 설정하세요.
-            </p>
+            <p className="mt-1 text-xs font-medium text-slate-500">워크스페이스 이름을 설정하세요.</p>
           </div>
           <button
             aria-label="워크스페이스 추가 닫기"
@@ -169,6 +70,7 @@ function CreateWorkspaceModal({
             워크스페이스명
           </label>
           <input
+            autoFocus
             className="mt-2 h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium outline-none transition-colors placeholder:text-slate-400 focus:border-[#0058BE] focus:ring-2 focus:ring-[#0058BE]/20"
             id="workspace-name"
             onChange={(event) => setWorkspaceName(event.currentTarget.value)}
@@ -182,65 +84,11 @@ function CreateWorkspaceModal({
             value={workspaceName}
           />
 
-          <div className="mt-5 border-t border-slate-200 pt-5">
-            <h3 className="text-sm font-bold text-slate-800">워크스페이스 멤버 추가</h3>
-            <p className="mt-1 text-xs font-medium text-slate-500">
-              닉네임 또는 이메일을 입력해 가입된 사용자를 추가하세요.
-            </p>
-          </div>
+          <p className="mt-4 text-xs font-medium text-slate-500">
+            멤버 추가는 워크스페이스 설정에서 가능합니다.
+          </p>
 
-          <label className="mt-4 block text-sm font-bold text-slate-800" htmlFor="workspace-member-query">
-            닉네임 또는 이메일
-          </label>
-          <div className="mt-2 flex items-center gap-3">
-            <input
-              className="h-10 min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium outline-none transition-colors placeholder:text-slate-400 focus:border-[#0058BE] focus:ring-2 focus:ring-[#0058BE]/20"
-              id="workspace-member-query"
-              onChange={(event) => setMemberQuery(event.currentTarget.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  event.preventDefault()
-                  void handleAddMember()
-                }
-              }}
-              placeholder="예: 홍길동 또는 user@example.com"
-              value={memberQuery}
-            />
-            <button
-              className="h-10 rounded-lg bg-[#0058BE] px-5 text-sm font-bold text-white transition-colors hover:bg-[#004EA8] disabled:cursor-not-allowed disabled:opacity-45"
-              disabled={!canAddMember}
-              onClick={() => void handleAddMember()}
-              type="button"
-            >
-              추가
-            </button>
-          </div>
           {errorMessage ? <p className="mt-2 text-xs font-bold text-[#BA1A1A]">{errorMessage}</p> : null}
-
-          <div className="mt-5">
-            <h3 className="text-sm font-bold text-slate-800">추가된 멤버</h3>
-            <p className="mt-1 text-xs font-medium text-slate-500">
-              생성할 워크스페이스 멤버 리스트 확인 및 멤버 권한을 설정하세요.
-            </p>
-          </div>
-
-          <div className="mt-3 max-h-56 overflow-y-auto rounded-lg border border-slate-200 bg-[#fbfbff] p-2">
-            {members.map((member) => (
-              <div className="flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-white" key={member.id}>
-                <span className="relative inline-flex">
-                  <Avatar name={member.user.name} size={34} src={member.user.avatarUrl} />
-                  {member.user.status === 'online' ? (
-                    <span className="absolute bottom-0 right-0 size-3 rounded-full border-2 border-[#fbfbff] bg-emerald-500" />
-                  ) : null}
-                </span>
-                <span className="min-w-0 flex-1 truncate text-sm font-bold text-slate-800">
-                  {member.user.name}
-                  {member.user.id === owner.id ? <span className="ml-1 text-[#0058BE]">(나)</span> : null}
-                </span>
-                <WorkspaceRoleBadge role={member.role} onClick={(event) => handleRoleClick(member, event)} />
-              </div>
-            ))}
-          </div>
 
           <button
             className="mt-4 h-10 w-full rounded-lg bg-[#0058BE] text-sm font-bold text-white transition-colors hover:bg-[#004EA8] disabled:cursor-not-allowed disabled:opacity-45"
@@ -248,7 +96,7 @@ function CreateWorkspaceModal({
             onClick={() => void handleCreate()}
             type="button"
           >
-            {submitting ? '추가 중' : '추가'}
+            {submitting ? '생성 중...' : '워크스페이스 생성'}
           </button>
         </div>
       </section>
@@ -331,17 +179,11 @@ export function WorkspaceSidebar() {
     navigate('/chat')
   }
 
-  const handleCreateWorkspace = async (name: string, members: WorkspaceMember[]) => {
+  const handleCreateWorkspace = async (name: string) => {
     const createdWorkspace = await workspaceApi.createWorkspace({ name })
     if (!createdWorkspace?.id) {
       throw new Error('Workspace creation response did not include an id.')
     }
-
-    const invitedMembers = members.filter((member) => member.user.id !== currentUser.id)
-
-    await Promise.all(
-      invitedMembers.map((member) => workspaceApi.inviteMember(createdWorkspace.id, member.user.email).catch(() => undefined)),
-    )
 
     addWorkspace(createdWorkspace, [createWorkspaceOwner(currentUser)])
     setActiveWorkspaceId(createdWorkspace.id)
@@ -359,7 +201,6 @@ export function WorkspaceSidebar() {
         <CreateWorkspaceModal
           onClose={() => setCreateWorkspaceOpen(false)}
           onCreate={handleCreateWorkspace}
-          owner={currentUser}
         />
       ) : null}
 

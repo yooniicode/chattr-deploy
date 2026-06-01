@@ -11,6 +11,7 @@ interface ChannelState {
   addChannel: (name: string, memberIds: string[], workspaceId: string) => Promise<Channel>
   addChannelMembers: (channelId: string, memberIds: string[]) => void
   fetchChannelMembers: (channelId: string) => Promise<void>
+  updateChannel: (channelId: string, channel: Channel) => void
   clearOpenedUnreadCount: (channelId: string) => void
   deleteChannel: (channelId: string) => void
   deleteWorkspaceChannels: (workspaceId: string) => void
@@ -153,6 +154,10 @@ export const useChannelStore = create<ChannelState>()((set) => ({
       }
     })
   },
+  updateChannel: (channelId, channel) =>
+    set((state) => ({
+      channels: state.channels.map((ch) => (ch.id === channelId ? channel : ch)),
+    })),
   fetchChannelMembers: async (channelId) => {
     const members = await channelApi.getChannelMembers(channelId)
     set((state) => ({

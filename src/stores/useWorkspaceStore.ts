@@ -16,6 +16,7 @@ interface WorkspaceState {
   activeWorkspaceId?: string
   addWorkspace: (workspace: Workspace, members?: WorkspaceMember[]) => void
   deleteWorkspace: (workspaceId: string) => void
+  updateWorkspaceName: (workspaceId: string, name: string) => void
   updateCurrentUserProfile: (profile: { avatarUrl?: string; email: string; name: string; userId: string }) => void
   updateWorkspaceMemberRole: (memberId: string, role: WorkspaceRole) => void
   setWorkspaces: (workspaces: Workspace[]) => void
@@ -52,6 +53,10 @@ export const useWorkspaceStore = create<WorkspaceState>()((set) => ({
             },
       }
     }),
+  updateWorkspaceName: (workspaceId, name) =>
+    set((state) => ({
+      workspaces: state.workspaces.map((ws) => (ws.id === workspaceId ? { ...ws, name } : ws)),
+    })),
   deleteWorkspace: (workspaceId) =>
     set((state) => {
       const nextWorkspaces = state.workspaces.filter(isValidWorkspace).filter((workspace) => workspace.id !== workspaceId)

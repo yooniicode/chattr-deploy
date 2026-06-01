@@ -1,5 +1,5 @@
-import { Trash2, UserPlus, X } from 'lucide-react'
-import { useState, type MouseEvent } from 'react'
+import { Settings, Trash2, UserPlus, X } from 'lucide-react'
+import { useState } from 'react'
 import { channelApi } from '../api/channelApi'
 import { messageApi } from '../api/messageApi'
 import { fileApi } from '../api/fileApi'
@@ -13,8 +13,115 @@ import { useAuthStore } from '../stores/useAuthStore'
 import { useChannelStore } from '../stores/useChannelStore'
 import { useMessageStore } from '../stores/useMessageStore'
 import { useWorkspaceStore } from '../stores/useWorkspaceStore'
+import type { Channel } from '../types/channel'
 import type { Message } from '../types/message'
 import { channelSocket } from '../websocket/channelSocket'
+
+function ChannelEditModal({ channel, onClose }: { channel: Channel; onClose: () => void }) {
+  const updateChannel = useChannelStore((state) => state.updateChannel)
+  const [name, setName] = useState(channel.name)
+  const [description, setDescription] = useState(channel.description ?? '')
+  const [topic, setTopic] = useState(channel.topic ?? '')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const isDirty =
+    name.trim() !== channel.name ||
+    description !== (channel.description ?? '') ||
+    topic !== (channel.topic ?? '')
+
+  const handleSave = async () => {
+    const trimmedName = name.trim()
+    if (!trimmedName || isSubmitting) return
+    setIsSubmitting(true)
+    setError(null)
+    try {
+      const updated = await channelApi.updateChannel(channel.id, {
+        name: trimmedName,
+        description: description.trim() || undefined,
+        topic: topic.trim() || undefined,
+      })
+      updateChannel(channel.id, updated)
+      onClose()
+    } catch (err) {
+      const status = (err as { response?: { status?: number } })?.response?.status
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      if (status === 403) setError('채널 수정 권한이 없습니다.')
+      else setError(message ?? '채널 수정 중 오류가 발생했습니다.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-30 grid place-items-center bg-slate-950/35 px-4">
+      <section className="w-full max-w-[34rem] overflow-hidden rounded-xl border border-slate-300 bg-white shadow-2xl">
+        <header className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+          <div>
+            <h2 className="text-base font-extrabold text-slate-950">채널 수정</h2>
+            <p className="mt-1 text-xs font-medium text-slate-500">채널 이름, 설명, 토픽을 수정하세요.</p>
+          </div>
+          <button
+            aria-label="채널 수정 닫기"
+            className="rounded-md p-1 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
+            onClick={onClose}
+            type="button"
+          >
+            <X size={18} />
+          </button>
+        </header>
+        <div className="px-6 py-5 space-y-4">
+          <div>
+            <label className="block text-sm font-bold text-slate-800" htmlFor="channel-edit-name">
+              채널명
+            </label>
+            <input
+              autoFocus
+              className="mt-2 h-10 w-full rounded-lg border border-slate-300 px-3 text-sm font-medium outline-none transition-colors placeholder:text-slate-400 focus:border-[#0058BE] focus:ring-2 focus:ring-[#0058BE]/20"
+              id="channel-edit-name"
+              onChange={(e) => setName(e.target.value)}
+              placeholder="채널명"
+              value={name}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-slate-800" htmlFor="channel-edit-description">
+              설명
+            </label>
+            <input
+              className="mt-2 h-10 w-full rounded-lg border border-slate-300 px-3 text-sm font-medium outline-none transition-colors placeholder:text-slate-400 focus:border-[#0058BE] focus:ring-2 focus:ring-[#0058BE]/20"
+              id="channel-edit-description"
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="채널 설명 (선택)"
+              value={description}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-slate-800" htmlFor="channel-edit-topic">
+              토픽
+            </label>
+            <input
+              className="mt-2 h-10 w-full rounded-lg border border-slate-300 px-3 text-sm font-medium outline-none transition-colors placeholder:text-slate-400 focus:border-[#0058BE] focus:ring-2 focus:ring-[#0058BE]/20"
+              id="channel-edit-topic"
+              onChange={(e) => setTopic(e.target.value)}
+              placeholder="채널 토픽 (선택)"
+              value={topic}
+            />
+          </div>
+          {error ? <p className="text-xs font-medium text-red-500">{error}</p> : null}
+          <button
+            className="h-10 w-full rounded-lg bg-[#0058BE] text-sm font-bold text-white transition-colors hover:bg-[#004EA8] disabled:cursor-not-allowed disabled:opacity-45"
+            disabled={!name.trim() || !isDirty || isSubmitting}
+            onClick={() => { void handleSave() }}
+            type="button"
+          >
+            {isSubmitting ? '저장 중...' : '저장'}
+          </button>
+        </div>
+      </section>
+    </div>
+  )
+}
 
 function ChannelMemberModal({ activeUserId, onClose }: { activeUserId: string; onClose: () => void }) {
   const { activeChannelId, addChannelMembers, channelMemberIds } = useChannelStore()
@@ -134,7 +241,10 @@ function ChannelMemberModal({ activeUserId, onClose }: { activeUserId: string; o
 
 function ChannelHeader() {
   const [memberModalOpen, setMemberModalOpen] = useState(false)
-  const [permissionNotice, setPermissionNotice] = useState<{ left: number; top: number } | null>(null)
+  const [editModalOpen, setEditModalOpen] = useState(false)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const { activeChannelId, channels, deleteChannel } = useChannelStore()
   const deleteChannelMessages = useMessageStore((state) => state.deleteChannelMessages)
   const authUser = useAuthStore((state) => state.user)
@@ -146,25 +256,23 @@ function ChannelHeader() {
   const hasActiveChannel = Boolean(activeChannel)
   const currentRole = workspaceMembers.find((member) => member.user.id === activeUserId)?.role ?? 'member'
 
-  const showPermissionNotice = (event: MouseEvent<HTMLButtonElement>) => {
-    const rect = event.currentTarget.getBoundingClientRect()
-    setPermissionNotice({
-      left: Math.max(16, Math.min(rect.right + 10, window.innerWidth - 316)),
-      top: Math.max(16, Math.min(rect.top - 10, window.innerHeight - 100)),
-    })
-  }
-
-  const handleDeleteChannel = (event: MouseEvent<HTMLButtonElement>) => {
-    if (!activeChannel) return
-
-    if (currentRole !== 'admin') {
-      showPermissionNotice(event)
-      return
+  const handleConfirmDelete = async () => {
+    if (!activeChannel || isDeleting) return
+    setIsDeleting(true)
+    setDeleteError(null)
+    try {
+      await channelApi.deleteChannel(activeChannel.id)
+      deleteChannelMessages(activeChannel.id)
+      deleteChannel(activeChannel.id)
+      setDeleteConfirmOpen(false)
+    } catch (err) {
+      const status = (err as { response?: { status?: number } })?.response?.status
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      if (status === 403) setDeleteError('채널 삭제 권한이 없습니다.')
+      else setDeleteError(message ?? '채널 삭제 중 오류가 발생했습니다.')
+    } finally {
+      setIsDeleting(false)
     }
-
-    deleteChannelMessages(activeChannel.id)
-    deleteChannel(activeChannel.id)
-    setPermissionNotice(null)
   }
 
   return (
@@ -172,21 +280,35 @@ function ChannelHeader() {
       {memberModalOpen && hasActiveChannel ? (
         <ChannelMemberModal activeUserId={activeUserId} onClose={() => setMemberModalOpen(false)} />
       ) : null}
-      {permissionNotice ? (
-        <div
-          className="fixed z-40 w-[18.75rem] rounded-lg border border-slate-300 bg-white p-3 text-xs font-bold leading-5 text-slate-700 shadow-xl"
-          style={{ left: permissionNotice.left, top: permissionNotice.top }}
-        >
-          <div className="flex items-start justify-between gap-3">
-            <p>채널 삭제는 해당 워크스페이스의 admin 멤버만 가능합니다.</p>
-            <button
-              aria-label="채널 삭제 권한 안내 닫기"
-              className="shrink-0 text-slate-400 transition-colors hover:text-slate-700"
-              onClick={() => setPermissionNotice(null)}
-              type="button"
-            >
-              <X size={14} />
-            </button>
+      {editModalOpen && activeChannel ? (
+        <ChannelEditModal channel={activeChannel} onClose={() => setEditModalOpen(false)} />
+      ) : null}
+      {deleteConfirmOpen && activeChannel ? (
+        <div className="fixed inset-0 z-30 grid place-items-center bg-slate-950/35 px-4">
+          <div className="w-full max-w-xs rounded-xl border border-slate-300 bg-white p-6 shadow-2xl">
+            <h2 className="text-sm font-extrabold text-slate-950">채널 삭제</h2>
+            <p className="mt-2 text-xs font-medium text-slate-600">
+              <span className="font-bold text-slate-950">#{activeChannel.name}</span> 채널을 삭제하시겠습니까?<br />
+              삭제된 채널은 복구할 수 없습니다.
+            </p>
+            {deleteError ? <p className="mt-2 text-xs font-medium text-red-500">{deleteError}</p> : null}
+            <div className="mt-5 flex gap-2">
+              <button
+                className="flex-1 h-9 rounded-lg border border-slate-300 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50"
+                onClick={() => { setDeleteConfirmOpen(false); setDeleteError(null) }}
+                type="button"
+              >
+                취소
+              </button>
+              <button
+                className="flex-1 h-9 rounded-lg bg-[#BA1A1A] text-sm font-bold text-white transition-colors hover:bg-[#9f1515] disabled:opacity-45"
+                disabled={isDeleting}
+                onClick={() => { void handleConfirmDelete() }}
+                type="button"
+              >
+                {isDeleting ? '삭제 중...' : '삭제'}
+              </button>
+            </div>
           </div>
         </div>
       ) : null}
@@ -201,6 +323,17 @@ function ChannelHeader() {
         )}
       </h1>
       <div className="flex items-center gap-3">
+        {currentRole === 'admin' ? (
+          <button
+            aria-label="채널 수정"
+            className="grid size-7 place-items-center text-slate-700 hover:text-[#0058BE] disabled:cursor-not-allowed disabled:opacity-35"
+            disabled={!hasActiveChannel}
+            onClick={() => setEditModalOpen(true)}
+            type="button"
+          >
+            <Settings size={20} />
+          </button>
+        ) : null}
         <button
           aria-label="채널 멤버 추가"
           className="grid size-7 place-items-center text-slate-700 hover:text-[#0058BE] disabled:cursor-not-allowed disabled:opacity-35"
@@ -210,15 +343,17 @@ function ChannelHeader() {
         >
           <UserPlus size={20} />
         </button>
-        <button
-          aria-label="채널 삭제"
-          className="grid size-7 place-items-center text-slate-700 hover:text-[#BA1A1A] disabled:cursor-not-allowed disabled:opacity-35"
-          disabled={!hasActiveChannel}
-          onClick={handleDeleteChannel}
-          type="button"
-        >
-          <Trash2 size={20} />
-        </button>
+        {currentRole === 'admin' ? (
+          <button
+            aria-label="채널 삭제"
+            className="grid size-7 place-items-center text-slate-700 hover:text-[#BA1A1A] disabled:cursor-not-allowed disabled:opacity-35"
+            disabled={!hasActiveChannel}
+            onClick={() => { setDeleteConfirmOpen(true); setDeleteError(null) }}
+            type="button"
+          >
+            <Trash2 size={20} />
+          </button>
+        ) : null}
       </div>
     </header>
   )

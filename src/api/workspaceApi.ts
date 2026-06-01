@@ -82,11 +82,8 @@ export const workspaceApi = {
       .map(mapWorkspaceMember)
       .filter((member): member is WorkspaceMember => Boolean(member))
   },
-  inviteMember: async (workspaceId: string, email: string) => {
-    await axiosInstance.post(`/workspaces/${workspaceId}/invitations`, { email })
-  },
-  acceptInvitation: async (workspaceId: string) => {
-    await axiosInstance.post(`/workspaces/${workspaceId}/members`)
+  addMember: async (workspaceId: string, userId: string) => {
+    await axiosInstance.post(`/workspaces/${workspaceId}/members`, { userId })
   },
   changeMemberRole: async (workspaceId: string, userId: string, role: WorkspaceRole) => {
     await axiosInstance.patch(`/workspaces/${workspaceId}/members`, { userId, role })
