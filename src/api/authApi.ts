@@ -18,6 +18,10 @@ export const authApi = {
   logout: async () => {
     await axiosInstance.post('/auth/logout')
   },
+  refresh: async (refreshToken: string, username: string) => {
+    const { data } = await axiosInstance.post<LoginResponse>('/auth/refresh', { refreshToken, username })
+    return data
+  },
   registerDevice: async (deviceToken: string) => {
     await axiosInstance.post('/auth/device/register', { deviceToken })
   },
