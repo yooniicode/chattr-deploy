@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { authApi } from '../api/authApi'
 import { userApi } from '../api/userApi'
-import { clearTokens, getIdToken, setAccessToken, setIdToken, setRefreshToken } from '../utils/token'
+import { clearTokens, getIdToken, setAccessToken, setIdToken, setRefreshToken, setUsername } from '../utils/token'
 import type { User } from '../types/user'
 import { useChannelStore } from './useChannelStore'
 import { useDmStore } from './useDmStore'
@@ -28,6 +28,7 @@ export const useAuthStore = create<AuthState>()((set) => ({
     setIdToken(tokens.idToken)
     setAccessToken(tokens.accessToken)
     setRefreshToken(tokens.refreshToken)
+    setUsername(tokens.username)
     const user = await userApi.getProfile()
     set({ user, isAuthenticated: true, isSessionReady: true })
   },

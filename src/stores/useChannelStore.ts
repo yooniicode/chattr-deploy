@@ -46,7 +46,7 @@ export const useChannelStore = create<ChannelState>()((set) => ({
     }
 
     await Promise.all(
-      memberIds.map((memberId) => channelApi.addChannelMember(workspaceId, channel.id, memberId).catch(() => undefined)),
+      memberIds.map((memberId) => channelApi.addChannelMember(channel.id, memberId).catch(() => undefined)),
     )
 
     set((state) => ({

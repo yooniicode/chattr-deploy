@@ -58,26 +58,20 @@ export const channelApi = {
     return data
   },
   updateChannel: async (
-    workspaceId: string,
     channelId: string,
-    payload: Partial<Pick<Channel, 'name' | 'description'>>,
+    payload: { name?: string; description?: string; topic?: string },
   ) => {
-    const { data } = await axiosInstance.patch<Channel>(
-      `/workspaces/${workspaceId}/channels/${channelId}`,
-      payload,
-    )
+    const { data } = await axiosInstance.patch<BackendChannel>(`/channels/${channelId}`, payload)
+    return mapChannel(data)
+  },
+  deleteChannel: async (channelId: string) => {
+    await axiosInstance.delete(`/channels/${channelId}`)
+  },
+  getChannelMembers: async (channelId: string) => {
+    const { data } = await axiosInstance.get<User[]>(`/channels/${channelId}/members`)
     return data
   },
-  deleteChannel: async (workspaceId: string, channelId: string) => {
-    await axiosInstance.delete(`/workspaces/${workspaceId}/channels/${channelId}`)
-  },
-  getChannelMembers: async (workspaceId: string, channelId: string) => {
-    const { data } = await axiosInstance.get<User[]>(
-      `/workspaces/${workspaceId}/channels/${channelId}/members`,
-    )
-    return data
-  },
-  addChannelMember: async (workspaceId: string, channelId: string, userId: string) => {
-    await axiosInstance.post(`/workspaces/${workspaceId}/channels/${channelId}/members`, { userId })
+  addChannelMember: async (channelId: string, userId: string) => {
+    await axiosInstance.post(`/channels/${channelId}/members`, { userId })
   },
 }

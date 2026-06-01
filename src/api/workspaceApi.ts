@@ -88,7 +88,7 @@ export const workspaceApi = {
   acceptInvitation: async (workspaceId: string) => {
     await axiosInstance.post(`/workspaces/${workspaceId}/members`)
   },
-  changeMemberRole: async (workspaceId: string, memberId: string, role: WorkspaceRole) => {
-    await axiosInstance.patch(`/workspaces/${workspaceId}/members`, { memberId, role })
+  changeMemberRole: async (workspaceId: string, userId: string, role: WorkspaceRole) => {
+    await axiosInstance.patch(`/workspaces/${workspaceId}/members`, { userId, role })
   },
 }

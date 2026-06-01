@@ -72,7 +72,7 @@ export function WorkspaceMemberPage() {
 
     setPermissionError(null)
     const newRole = member.role === 'admin' ? 'member' : 'admin'
-    void workspaceApi.changeMemberRole(activeWorkspaceId, member.id, newRole).then(() => {
+    void workspaceApi.changeMemberRole(activeWorkspaceId, member.user.id, newRole).then(() => {
       updateWorkspaceMemberRole(member.id, newRole)
     })
   }
