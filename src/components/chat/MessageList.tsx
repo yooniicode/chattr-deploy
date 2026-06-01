@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { Message } from '../../types/message'
+import { formatDateLabel, getDateKey } from '../../utils/formatDate'
 import { sortMessagesByCreatedAt } from '../../utils/message'
 import { ChatMessage } from './ChatMessage'
 
@@ -66,28 +67,35 @@ export function MessageList({
   return (
     <div ref={scrollRef} className="min-h-0 overflow-auto bg-[#fbfbff] px-6 py-5" onScroll={handleScroll}>
       <div className="flex min-w-max flex-col gap-5">
-      <div className="mb-1 flex items-center gap-4">
-        <div className="h-px flex-1 bg-slate-300" />
-        <span className="rounded-full bg-white px-4 py-1 text-xs font-bold text-slate-600">
-          2023년 10월 24일 (화)
-        </span>
-        <div className="h-px flex-1 bg-slate-300" />
-      </div>
-      {sortedMessages.map((message, index) => (
-        <div className="contents" key={message.id}>
-          {showReadBoundary && index === boundaryIndex ? (
-            <div ref={readBoundaryRef}>
-              <ReadBoundary />
+        {sortedMessages.map((message, index) => {
+          const prevMessage = sortedMessages[index - 1]
+          const showDateSep =
+            !prevMessage || getDateKey(message.createdAt) !== getDateKey(prevMessage.createdAt)
+          return (
+            <div className="contents" key={message.id}>
+              {showDateSep ? (
+                <div className="mb-1 flex items-center gap-4">
+                  <div className="h-px flex-1 bg-slate-300" />
+                  <span className="rounded-full bg-white px-4 py-1 text-xs font-bold text-slate-600">
+                    {formatDateLabel(message.createdAt)}
+                  </span>
+                  <div className="h-px flex-1 bg-slate-300" />
+                </div>
+              ) : null}
+              {showReadBoundary && index === boundaryIndex ? (
+                <div ref={readBoundaryRef}>
+                  <ReadBoundary />
+                </div>
+              ) : null}
+              <ChatMessage
+                message={message}
+                onDelete={onDeleteMessage}
+                onEdit={onEditMessage}
+                onReply={onReplyMessage}
+              />
             </div>
-          ) : null}
-          <ChatMessage
-            message={message}
-            onDelete={onDeleteMessage}
-            onEdit={onEditMessage}
-            onReply={onReplyMessage}
-          />
-        </div>
-      ))}
+          )
+        })}
       </div>
     </div>
   )

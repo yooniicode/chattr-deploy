@@ -12,6 +12,7 @@ import { useDmStore } from '../stores/useDmStore'
 import { useMessageStore } from '../stores/useMessageStore'
 import type { Message } from '../types/message'
 import type { User } from '../types/user'
+import { formatDateLabel, getDateKey } from '../utils/formatDate'
 import { dmSocket } from '../websocket/dmSocket'
 
 function DmHeader({ onDelete, participant }: { onDelete: () => void; participant?: User }) {
@@ -81,28 +82,37 @@ function DmMessageList({
       className="flex min-h-0 flex-col gap-3 overflow-y-auto bg-[#fbfbff] px-6 py-4"
       onScroll={handleScroll}
     >
-      <div className="mb-1 flex items-center gap-4">
-        <div className="h-px flex-1 bg-slate-300" />
-        <span className="px-4 text-xs font-bold text-slate-600">2023년 10월 24일 화요일</span>
-        <div className="h-px flex-1 bg-slate-300" />
-      </div>
-      {messages.map((message, index) => (
-        <div className="contents" key={message.id}>
-          {showReadBoundary && index === boundaryIndex ? (
-            <div ref={readBoundaryRef} className="flex justify-center py-2">
-              <span className="rounded-full bg-red-50 px-4 py-1.5 text-xs font-bold text-red-500">
-                여기까지 읽으셨습니다
-              </span>
-            </div>
-          ) : null}
-          <DmMessage
-            message={message}
-            onDelete={onDeleteMessage}
-            onEdit={onEditMessage}
-            onReply={onReplyMessage}
-          />
-        </div>
-      ))}
+      {messages.map((message, index) => {
+        const prevMessage = messages[index - 1]
+        const showDateSep =
+          !prevMessage || getDateKey(message.createdAt) !== getDateKey(prevMessage.createdAt)
+        return (
+          <div className="contents" key={message.id}>
+            {showDateSep ? (
+              <div className="mb-1 flex items-center gap-4">
+                <div className="h-px flex-1 bg-slate-300" />
+                <span className="rounded-full bg-white px-4 py-1 text-xs font-bold text-slate-600">
+                  {formatDateLabel(message.createdAt)}
+                </span>
+                <div className="h-px flex-1 bg-slate-300" />
+              </div>
+            ) : null}
+            {showReadBoundary && index === boundaryIndex ? (
+              <div ref={readBoundaryRef} className="flex justify-center py-2">
+                <span className="rounded-full bg-red-50 px-4 py-1.5 text-xs font-bold text-red-500">
+                  여기까지 읽으셨습니다
+                </span>
+              </div>
+            ) : null}
+            <DmMessage
+              message={message}
+              onDelete={onDeleteMessage}
+              onEdit={onEditMessage}
+              onReply={onReplyMessage}
+            />
+          </div>
+        )
+      })}
     </div>
   )
 }
