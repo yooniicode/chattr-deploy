@@ -1,6 +1,7 @@
 import { Download, FileText } from 'lucide-react'
 import { useState } from 'react'
 import type { Message } from '../../types/message'
+import { formatDate } from '../../utils/formatDate'
 import { formatFileSize } from '../../utils/upload'
 import { getUserAvatarName, getUserDisplayName, isCurrentUser } from '../../utils/userDisplay'
 import { Avatar } from '../common/Avatar'
@@ -92,7 +93,7 @@ export function DmMessage({ message, onDelete, onEdit, onReply }: DmMessageProps
             </button>
           ) : null}
           <div className="mb-1 flex justify-end gap-2 text-[11px] font-medium text-slate-500">
-            <time dateTime={message.createdAt}>{message.displayTime}</time>
+            <time dateTime={message.createdAt}>{message.displayTime ?? formatDate(message.createdAt)}</time>
             <strong className="text-sm font-bold text-slate-950">{authorName}</strong>
           </div>
           {contentNode}
@@ -136,7 +137,7 @@ export function DmMessage({ message, onDelete, onEdit, onReply }: DmMessageProps
         <div className="mb-1 flex items-baseline gap-2">
           <strong className="text-sm font-bold text-slate-950">{authorName}</strong>
           <time className="text-[11px] font-medium text-slate-500" dateTime={message.createdAt}>
-            {message.displayTime}
+            {message.displayTime ?? formatDate(message.createdAt)}
           </time>
         </div>
         {contentNode}
