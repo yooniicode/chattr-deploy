@@ -25,8 +25,4 @@ export const authApi = {
   registerDevice: async (deviceToken: string) => {
     await axiosInstance.post('/auth/device/register', { deviceToken })
   },
-  getDevices: async () => {
-    const { data } = await axiosInstance.get('/auth/devices')
-    return data
-  },
 }

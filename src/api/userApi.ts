@@ -41,7 +41,7 @@ export const userApi = {
     return mapBackendUser(data)
   },
   getDevices: async () => {
-    const { data } = await axiosInstance.get<Device[]>('/users/me/devices')
+    const { data } = await axiosInstance.get<Device[]>('/auth/devices')
     return data
   },
 }

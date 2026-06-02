@@ -13,9 +13,9 @@ interface ChatInputProps {
 
 export function ChatInput({ compact = false, helperText, onCancelReply, onSend, replyTarget }: ChatInputProps) {
   const [message, setMessage] = useState('')
+  const [hasFile, setHasFile] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const selectedFile = fileInputRef.current?.files?.[0]
-  const canSend = message.trim().length > 0 || Boolean(selectedFile)
+  const canSend = message.trim().length > 0 || hasFile
 
   const handleSubmit = () => {
     const content = message.trim()
@@ -23,6 +23,7 @@ export function ChatInput({ compact = false, helperText, onCancelReply, onSend, 
     if (!content && !file) return
 
     setMessage('')
+    setHasFile(false)
     if (fileInputRef.current) fileInputRef.current.value = ''
 
     try {
@@ -78,7 +79,7 @@ export function ChatInput({ compact = false, helperText, onCancelReply, onSend, 
               className="sr-only"
               ref={fileInputRef}
               type="file"
-              onChange={() => {}}
+              onChange={(e) => setHasFile(Boolean(e.currentTarget.files?.[0]))}
             />
           </label>
 

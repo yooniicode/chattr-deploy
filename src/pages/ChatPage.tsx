@@ -364,6 +364,7 @@ export function ChatPage() {
   const { channelMessagesByRoomId, updateChannelMessages } = useMessageStore()
   const { activeWorkspaceId } = useWorkspaceStore()
   const [replyTarget, setReplyTarget] = useState<Message | null>(null)
+  const [sendError, setSendError] = useState<string | null>(null)
   const activeChannel = channels.find(
     (channel) => channel.id === activeChannelId && channel.workspaceId === activeWorkspaceId,
   )
@@ -380,9 +381,14 @@ export function ChatPage() {
     let attachments: { url: string; name: string; size: number; contentType: string }[] | undefined
 
     if (file) {
-      const { presignedUrl, fileUrl } = await fileApi.getPresignedUrl(file.name, file.type)
-      await fileApi.uploadToS3(presignedUrl, file)
-      attachments = [{ url: fileUrl, name: file.name, size: file.size, contentType: file.type }]
+      try {
+        const { presignedUrl, fileUrl } = await fileApi.getPresignedUrl(file.name, file.type)
+        await fileApi.uploadToS3(presignedUrl, file)
+        attachments = [{ url: fileUrl, name: file.name, size: file.size, contentType: file.type }]
+      } catch {
+        setSendError('파일 업로드에 실패했습니다. 다시 시도해주세요.')
+        return
+      }
     }
 
     channelSocket.sendMessage(activeChannel.id, content, {
@@ -420,9 +426,14 @@ export function ChatPage() {
             onReplyMessage={setReplyTarget}
             unreadCount={activeChannel ? openedUnreadCounts[activeChannel.id] : 0}
           />
+          {sendError ? (
+            <p className="px-6 py-1.5 text-xs font-semibold text-[#BA1A1A] bg-red-50 border-t border-red-100">
+              {sendError}
+            </p>
+          ) : null}
           <ChatInput
             onCancelReply={() => setReplyTarget(null)}
-            onSend={(content, file) => { void handleSendMessage(content, file) }}
+            onSend={(content, file) => { setSendError(null); void handleSendMessage(content, file) }}
             replyTarget={replyTarget}
           />
         </>

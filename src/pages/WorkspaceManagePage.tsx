@@ -317,6 +317,7 @@ function WorkspaceManageCard({
 export function WorkspaceManagePage() {
   const navigate = useNavigate()
   const [permissionNotice, setPermissionNotice] = useState<PermissionNoticeState | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const [addMemberWorkspaceId, setAddMemberWorkspaceId] = useState<string | null>(null)
   const authUser = useAuthStore((state) => state.user)
   const activeUserId = authUser?.id ?? ''
@@ -380,6 +381,10 @@ export function WorkspaceManagePage() {
       deleteWorkspaceChannels(workspaceId)
       deleteWorkspace(workspaceId)
       setPermissionNotice(null)
+      setDeleteError(null)
+    }).catch((err: unknown) => {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      setDeleteError(message ?? '워크스페이스 삭제에 실패했습니다.')
     })
   }
 
@@ -418,6 +423,11 @@ export function WorkspaceManagePage() {
               <span>내 워크스페이스 목록: 참여 중인 워크스페이스를 정보를 확인 및 수정하세요.</span>
             </div>
 
+            {deleteError ? (
+              <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-[#BA1A1A]">
+                {deleteError}
+              </p>
+            ) : null}
             {displayedWorkspaces.length === 0 ? (
               <p className="text-sm font-medium text-slate-500">참여 중인 워크스페이스가 없습니다.</p>
             ) : (

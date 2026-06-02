@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { isAxiosError } from 'axios'
 import { authApi } from '../api/authApi'
 import { userApi } from '../api/userApi'
 import { clearTokens, getIdToken, setAccessToken, setIdToken, setRefreshToken, setUsername } from '../utils/token'
@@ -52,8 +53,11 @@ export const useAuthStore = create<AuthState>()((set) => ({
     try {
       const user = await userApi.getProfile()
       set({ user, isAuthenticated: true, isSessionReady: true })
-    } catch {
-      clearTokens()
+    } catch (error) {
+      const status = isAxiosError(error) ? error.response?.status : undefined
+      if (status === 401 || status === 403) {
+        clearTokens()
+      }
       set({ user: null, isAuthenticated: false, isSessionReady: true })
     }
   },

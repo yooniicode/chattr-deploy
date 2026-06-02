@@ -47,15 +47,20 @@ export const useChannelStore = create<ChannelState>()((set) => ({
       type: createdChannel.type ?? 'public',
     }
 
-    await Promise.all(
-      memberIds.map((memberId) => channelApi.addChannelMember(channel.id, memberId).catch(() => undefined)),
+    const results = await Promise.allSettled(
+      memberIds.map((memberId) =>
+        channelApi.addChannelMember(channel.id, memberId).then(() => memberId),
+      ),
     )
+    const addedMemberIds = results
+      .filter((r): r is PromiseFulfilledResult<string> => r.status === 'fulfilled')
+      .map((r) => r.value)
 
     set((state) => ({
       activeChannelId: channel.id,
       channelMemberIds: {
         ...state.channelMemberIds,
-        [channel.id]: memberIds,
+        [channel.id]: addedMemberIds,
       },
       channels: [...state.channels, channel],
     }))

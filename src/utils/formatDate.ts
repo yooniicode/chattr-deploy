@@ -13,5 +13,5 @@ export const formatDateLabel = (value: string | Date): string => {
 
 export const getDateKey = (value: string | Date): string => {
   const d = new Date(value)
-  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`
 }

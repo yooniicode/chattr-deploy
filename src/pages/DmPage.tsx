@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import { Trash2 } from 'lucide-react'
 import { fileApi } from '../api/fileApi'
 import { messageApi } from '../api/messageApi'
 import { ChatInput } from '../components/chat/ChatInput'
@@ -15,9 +14,9 @@ import type { User } from '../types/user'
 import { formatDateLabel, getDateKey } from '../utils/formatDate'
 import { dmSocket } from '../websocket/dmSocket'
 
-function DmHeader({ onDelete, participant }: { onDelete: () => void; participant?: User }) {
+function DmHeader({ participant }: { participant?: User }) {
   return (
-    <header className="flex h-13 items-center justify-between border-b border-slate-300 bg-[#fbfbff] px-6">
+    <header className="flex h-13 items-center border-b border-slate-300 bg-[#fbfbff] px-6">
       <div className="flex items-center gap-3">
         <span className="relative inline-flex shrink-0">
           <Avatar name={participant?.name ?? 'DM'} size={36} src={participant?.avatarUrl} />
@@ -27,15 +26,6 @@ function DmHeader({ onDelete, participant }: { onDelete: () => void; participant
         </span>
         <h1 className="text-sm font-extrabold text-slate-950">{participant?.name ?? 'Direct Message'}</h1>
       </div>
-      <button
-        aria-label="DM 삭제"
-        className="grid size-7 place-items-center text-slate-700 transition-colors hover:text-[#BA1A1A] disabled:cursor-not-allowed disabled:opacity-35"
-        disabled={!participant}
-        onClick={onDelete}
-        type="button"
-      >
-        <Trash2 size={20} />
-      </button>
     </header>
   )
 }
@@ -118,11 +108,12 @@ function DmMessageList({
 }
 
 export function DmPage() {
-  const { activeRoomId, clearOpenedUnreadCount, deleteRoom, openedUnreadCounts, rooms } = useDmStore()
+  const { activeRoomId, clearOpenedUnreadCount, openedUnreadCounts, rooms } = useDmStore()
   const authUser = useAuthStore((state) => state.user)
   const activeUserId = authUser?.id ?? ''
-  const { deleteDmMessages, dmMessagesByRoomId, updateDmMessages } = useMessageStore()
+  const { dmMessagesByRoomId, updateDmMessages } = useMessageStore()
   const [replyTarget, setReplyTarget] = useState<Message | null>(null)
+  const [sendError, setSendError] = useState<string | null>(null)
 
   const activeRoom = rooms.find((room) => room.id === activeRoomId) ?? rooms[0]
   const participant = activeRoom?.participants.find((p) => p.id !== activeUserId) ?? activeRoom?.participants[0]
@@ -141,9 +132,14 @@ export function DmPage() {
     let attachments: { url: string; name: string; size: number; contentType: string }[] | undefined
 
     if (file) {
-      const { presignedUrl, fileUrl } = await fileApi.getPresignedUrl(file.name, file.type)
-      await fileApi.uploadToS3(presignedUrl, file)
-      attachments = [{ url: fileUrl, name: file.name, size: file.size, contentType: file.type }]
+      try {
+        const { presignedUrl, fileUrl } = await fileApi.getPresignedUrl(file.name, file.type)
+        await fileApi.uploadToS3(presignedUrl, file)
+        attachments = [{ url: fileUrl, name: file.name, size: file.size, contentType: file.type }]
+      } catch {
+        setSendError('파일 업로드에 실패했습니다. 다시 시도해주세요.')
+        return
+      }
     }
 
     dmSocket.sendMessage(activeRoomIdValue, content, {
@@ -167,15 +163,8 @@ export function DmPage() {
     )
   }
 
-  const handleDeleteRoom = () => {
-    if (!activeRoomIdValue) return
-    deleteDmMessages(activeRoomIdValue)
-    deleteRoom(activeRoomIdValue)
-    setReplyTarget(null)
-  }
-
   return (
-    <MainLayout header={<DmHeader onDelete={handleDeleteRoom} participant={participant} />} sidebar={<DmSidebar />}>
+    <MainLayout header={<DmHeader participant={participant} />} sidebar={<DmSidebar />}>
       <DmMessageList
         messages={messages}
         onDeleteMessage={handleDeleteMessage}
@@ -186,11 +175,16 @@ export function DmPage() {
         onReplyMessage={setReplyTarget}
         unreadCount={activeRoomIdValue ? openedUnreadCounts[activeRoomIdValue] : 0}
       />
+      {sendError ? (
+        <p className="px-6 py-1.5 text-xs font-semibold text-[#BA1A1A] bg-red-50 border-t border-red-100">
+          {sendError}
+        </p>
+      ) : null}
       <ChatInput
         compact
         helperText="Enter를 눌러 메시지 전송, Shift + Enter로 줄바꿈"
         onCancelReply={() => setReplyTarget(null)}
-        onSend={(content, file) => { void handleSendMessage(content, file) }}
+        onSend={(content, file) => { setSendError(null); void handleSendMessage(content, file) }}
         replyTarget={replyTarget}
       />
     </MainLayout>

@@ -9,13 +9,13 @@ class StompSocketClient {
   private activeSubscriptions = new Map<string, { unsubscribe: () => void }>()
   private pendingRooms = new Map<string, (message: BackendMessage) => void>()
 
-  connect(accessToken: string) {
+  connect(idToken: string) {
     if (this.client?.active) return
 
     this.client = new Client({
       webSocketFactory: () => new SockJS(import.meta.env.VITE_WS_URL ?? 'http://localhost:8080/ws') as unknown as WebSocket,
       connectHeaders: {
-        Authorization: `Bearer ${accessToken}`,
+        Authorization: `Bearer ${idToken}`,
       },
       reconnectDelay: 5000,
       onConnect: () => {

@@ -1,4 +1,5 @@
 import { useMemo, useState, type MouseEvent } from 'react'
+import { isAxiosError } from 'axios'
 import { AlertCircle, MessageSquare, UsersRound, X } from 'lucide-react'
 import { workspaceApi } from '../api/workspaceApi'
 import { MainLayout } from '../components/layout/MainLayout'
@@ -77,7 +78,9 @@ export function WorkspaceMemberPage() {
         updateWorkspaceMemberRole(member.id, newRole)
       })
       .catch((error: unknown) => {
-        const message = error instanceof Error ? error.message : '권한 변경에 실패했습니다.'
+        const message = isAxiosError(error)
+          ? (error.response?.data as { message?: string } | undefined)?.message ?? '권한 변경에 실패했습니다.'
+          : '권한 변경에 실패했습니다.'
         setPermissionError({ left, message, top })
       })
   }

@@ -1,6 +1,5 @@
 import { create } from 'zustand'
 import { mapMessage, messageApi } from '../api/messageApi'
-import type { RoomType } from '../api/messageApi'
 import type { Message } from '../types/message'
 import { useWorkspaceStore } from './useWorkspaceStore'
 
@@ -19,6 +18,12 @@ interface MessageState {
   }) => void
 }
 
+const getResponseStatus = (error: unknown) => (error as { response?: { status?: number } })?.response?.status
+
+const isServerError = (error: unknown) => {
+  const status = getResponseStatus(error)
+  return Boolean(status && status >= 500)
+}
 
 export const useMessageStore = create<MessageState>()((set) => ({
   channelMessagesByRoomId: {},
@@ -50,26 +55,46 @@ export const useMessageStore = create<MessageState>()((set) => ({
       },
     })),
   fetchChannelMessages: async (channelId, cursor) => {
-    const rawMessages = await messageApi.getMessages(channelId, 'CHANNEL' as RoomType, cursor)
-    const users = useWorkspaceStore.getState().workspaceMembers.map((m) => m.user)
-    const messages = rawMessages.map((raw) => mapMessage(raw, users))
-    set((state) => ({
-      channelMessagesByRoomId: {
-        ...state.channelMessagesByRoomId,
-        [channelId]: messages,
-      },
-    }))
+    try {
+      const rawMessages = await messageApi.getMessages(channelId, 'CHANNEL', cursor)
+      const users = useWorkspaceStore.getState().workspaceMembers.map((m) => m.user)
+      const messages = rawMessages.map((raw) => mapMessage(raw, users))
+      set((state) => ({
+        channelMessagesByRoomId: {
+          ...state.channelMessagesByRoomId,
+          [channelId]: messages,
+        },
+      }))
+    } catch (error) {
+      if (!isServerError(error)) throw error
+      set((state) => ({
+        channelMessagesByRoomId: {
+          ...state.channelMessagesByRoomId,
+          [channelId]: state.channelMessagesByRoomId[channelId] ?? [],
+        },
+      }))
+    }
   },
   fetchDmMessages: async (roomId, cursor) => {
-    const rawMessages = await messageApi.getMessages(roomId, 'DM' as RoomType, cursor)
-    const users = useWorkspaceStore.getState().workspaceMembers.map((m) => m.user)
-    const messages = rawMessages.map((raw) => mapMessage(raw, users))
-    set((state) => ({
-      dmMessagesByRoomId: {
-        ...state.dmMessagesByRoomId,
-        [roomId]: messages,
-      },
-    }))
+    try {
+      const rawMessages = await messageApi.getMessages(roomId, 'DM', cursor)
+      const users = useWorkspaceStore.getState().workspaceMembers.map((m) => m.user)
+      const messages = rawMessages.map((raw) => mapMessage(raw, users))
+      set((state) => ({
+        dmMessagesByRoomId: {
+          ...state.dmMessagesByRoomId,
+          [roomId]: messages,
+        },
+      }))
+    } catch (error) {
+      if (!isServerError(error)) throw error
+      set((state) => ({
+        dmMessagesByRoomId: {
+          ...state.dmMessagesByRoomId,
+          [roomId]: state.dmMessagesByRoomId[roomId] ?? [],
+        },
+      }))
+    }
   },
   replaceMessageState: (nextState) => set(nextState),
 }))
