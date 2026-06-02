@@ -19,10 +19,11 @@ function extractMessages(response: BackendMessage[] | MessagePageResponse | null
   return response?.content ?? []
 }
 
-export function mapMessage(raw: BackendMessage, users: User[]): Message {
-  const author: User = users.find((u) => u.id === raw.senderId) ?? {
+export function mapMessage(raw: BackendMessage): Message {
+  const author: User = {
     id: raw.senderId,
-    name: '알 수 없는 사용자',
+    name: raw.senderNickname ?? '알 수 없는 사용자',
+    avatarUrl: raw.senderAvatarUrl ?? undefined,
     email: '',
     status: 'offline',
   }

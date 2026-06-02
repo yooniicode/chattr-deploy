@@ -51,8 +51,7 @@ export function DataLoader() {
     fetchChannelMessages(activeChannelId)
     fetchChannelMembers(activeChannelId)
     const unsubscribe = socketClient.subscribe(activeChannelId, (raw) => {
-      const users = useWorkspaceStore.getState().workspaceMembers.map((m) => m.user)
-      const message = mapMessage(raw, users)
+      const message = mapMessage(raw)
       useMessageStore.getState().updateChannelMessages(activeChannelId, (msgs) =>
         msgs.some((m) => m.id === message.id) ? msgs : [...msgs, message],
       )
@@ -64,8 +63,7 @@ export function DataLoader() {
     if (!activeRoomId) return
     fetchDmMessages(activeRoomId)
     const unsubscribe = socketClient.subscribe(activeRoomId, (raw) => {
-      const users = useWorkspaceStore.getState().workspaceMembers.map((m) => m.user)
-      const message = mapMessage(raw, users)
+      const message = mapMessage(raw)
       useMessageStore.getState().updateDmMessages(activeRoomId, (msgs) =>
         msgs.some((m) => m.id === message.id) ? msgs : [...msgs, message],
       )
