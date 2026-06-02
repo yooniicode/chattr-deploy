@@ -6,6 +6,8 @@ export interface BackendMessage {
   id: string
   roomId: string
   senderId: string
+  senderNickname: string | null
+  senderAvatarUrl: string | null
   type: MessageType
   content: string
   attachments?: { fileUrl: string; fileName: string }[]

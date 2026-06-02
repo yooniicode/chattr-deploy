@@ -1,7 +1,6 @@
 import { create } from 'zustand'
 import { mapMessage, messageApi } from '../api/messageApi'
 import type { Message } from '../types/message'
-import { useWorkspaceStore } from './useWorkspaceStore'
 
 interface MessageState {
   channelMessagesByRoomId: Record<string, Message[]>
@@ -57,8 +56,7 @@ export const useMessageStore = create<MessageState>()((set) => ({
   fetchChannelMessages: async (channelId, cursor) => {
     try {
       const rawMessages = await messageApi.getMessages(channelId, 'CHANNEL', cursor)
-      const users = useWorkspaceStore.getState().workspaceMembers.map((m) => m.user)
-      const messages = rawMessages.map((raw) => mapMessage(raw, users))
+      const messages = rawMessages.map((raw) => mapMessage(raw))
       set((state) => ({
         channelMessagesByRoomId: {
           ...state.channelMessagesByRoomId,
@@ -78,8 +76,7 @@ export const useMessageStore = create<MessageState>()((set) => ({
   fetchDmMessages: async (roomId, cursor) => {
     try {
       const rawMessages = await messageApi.getMessages(roomId, 'DM', cursor)
-      const users = useWorkspaceStore.getState().workspaceMembers.map((m) => m.user)
-      const messages = rawMessages.map((raw) => mapMessage(raw, users))
+      const messages = rawMessages.map((raw) => mapMessage(raw))
       set((state) => ({
         dmMessagesByRoomId: {
           ...state.dmMessagesByRoomId,
