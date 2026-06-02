@@ -72,9 +72,14 @@ export function WorkspaceMemberPage() {
 
     setPermissionError(null)
     const newRole = member.role === 'admin' ? 'member' : 'admin'
-    void workspaceApi.changeMemberRole(activeWorkspaceId, member.user.id, newRole).then(() => {
-      updateWorkspaceMemberRole(member.id, newRole)
-    })
+    void workspaceApi.changeMemberRole(activeWorkspaceId, member.user.id, newRole)
+      .then(() => {
+        updateWorkspaceMemberRole(member.id, newRole)
+      })
+      .catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : '권한 변경에 실패했습니다.'
+        setPermissionError({ left, message, top })
+      })
   }
 
   return (

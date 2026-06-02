@@ -5,7 +5,7 @@ import { useChannelStore } from '../stores/useChannelStore'
 import { useDmStore } from '../stores/useDmStore'
 import { useMessageStore } from '../stores/useMessageStore'
 import { useWorkspaceStore } from '../stores/useWorkspaceStore'
-import { getAccessToken } from '../utils/token'
+import { getIdToken } from '../utils/token'
 import { socketClient } from '../websocket/socketClient'
 
 export function DataLoader() {
@@ -34,7 +34,7 @@ export function DataLoader() {
     if (!isSessionReady || !isAuthenticated) return
     fetchWorkspaces()
     fetchDmRooms(authUserId)
-    const token = getAccessToken()
+    const token = getIdToken()
     if (token) socketClient.connect(token)
     return () => { socketClient.disconnect() }
   }, [isSessionReady, isAuthenticated, authUserId, fetchWorkspaces, fetchDmRooms])

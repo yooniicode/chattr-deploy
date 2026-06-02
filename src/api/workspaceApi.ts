@@ -86,6 +86,6 @@ export const workspaceApi = {
     await axiosInstance.post(`/workspaces/${workspaceId}/members`, { userId })
   },
   changeMemberRole: async (workspaceId: string, userId: string, role: WorkspaceRole) => {
-    await axiosInstance.patch(`/workspaces/${workspaceId}/members`, { userId, role })
+    await axiosInstance.patch(`/workspaces/${workspaceId}/members`, { userId, role: role.toUpperCase() })
   },
 }
