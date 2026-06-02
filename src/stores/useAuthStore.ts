@@ -3,6 +3,7 @@ import { isAxiosError } from 'axios'
 import { authApi } from '../api/authApi'
 import { userApi } from '../api/userApi'
 import { clearTokens, getIdToken, setAccessToken, setIdToken, setRefreshToken, setUsername } from '../utils/token'
+import { getDeviceName, getDevicePlatform, getOrCreateDeviceId } from '../utils/device'
 import type { User } from '../types/user'
 import { useChannelStore } from './useChannelStore'
 import { useDmStore } from './useDmStore'
@@ -32,6 +33,11 @@ export const useAuthStore = create<AuthState>()((set) => ({
     setUsername(tokens.username)
     const user = await userApi.getProfile()
     set({ user, isAuthenticated: true, isSessionReady: true })
+    authApi.registerDevice({
+      deviceId: getOrCreateDeviceId(),
+      deviceName: getDeviceName(),
+      platform: getDevicePlatform(),
+    }).catch(() => {})
   },
   logout: async () => {
     try {

@@ -425,7 +425,12 @@ export function ChatPage() {
             onDeleteMessage={handleDeleteMessage}
             onEditMessage={handleEditMessage}
             onReadToBottom={() => {
-              if (activeChannel) clearOpenedUnreadCount(activeChannel.id)
+              if (!activeChannel) return
+              clearOpenedUnreadCount(activeChannel.id)
+              const lastMessageId = messages[messages.length - 1]?.id
+              if (lastMessageId) {
+                void messageApi.updateReadCursor(activeChannel.id, 'CHANNEL', lastMessageId)
+              }
             }}
             onReplyMessage={setReplyTarget}
             unreadCount={activeChannel ? openedUnreadCounts[activeChannel.id] : 0}

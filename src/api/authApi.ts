@@ -1,10 +1,17 @@
 import { axiosInstance } from './axiosInstance'
 import type { LoginRequest, LoginResponse } from '../types/auth'
+import type { Device } from '../types/user'
 
 export interface SignupRequest {
   email: string
   password: string
   nickname: string
+}
+
+export interface RegisterDeviceRequest {
+  deviceId: string
+  deviceName: string
+  platform: string
 }
 
 export const authApi = {
@@ -22,7 +29,11 @@ export const authApi = {
     const { data } = await axiosInstance.post<LoginResponse>('/auth/refresh', { refreshToken, username })
     return data
   },
-  registerDevice: async (deviceToken: string) => {
-    await axiosInstance.post('/auth/device/register', { deviceToken })
+  registerDevice: async (payload: RegisterDeviceRequest) => {
+    const { data } = await axiosInstance.post<Device>('/auth/device/register', payload)
+    return data
+  },
+  deleteDevice: async (deviceId: string) => {
+    await axiosInstance.delete(`/auth/devices/${deviceId}`)
   },
 }

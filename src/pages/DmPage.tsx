@@ -174,7 +174,12 @@ export function DmPage() {
         onDeleteMessage={handleDeleteMessage}
         onEditMessage={handleEditMessage}
         onReadToBottom={() => {
-          if (activeRoomIdValue) clearOpenedUnreadCount(activeRoomIdValue)
+          if (!activeRoomIdValue) return
+          clearOpenedUnreadCount(activeRoomIdValue)
+          const lastMessageId = messages[messages.length - 1]?.id
+          if (lastMessageId) {
+            void messageApi.updateReadCursor(activeRoomIdValue, 'DM', lastMessageId)
+          }
         }}
         onReplyMessage={setReplyTarget}
         unreadCount={activeRoomIdValue ? openedUnreadCounts[activeRoomIdValue] : 0}

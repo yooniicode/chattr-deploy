@@ -17,7 +17,9 @@ export interface BackendUser {
 }
 
 export interface Device {
-  id: string
-  name: string
+  deviceId: string
+  deviceName: string
+  platform: string
   lastActiveAt: string
+  registeredAt: string
 }
