@@ -41,12 +41,6 @@ export const channelApi = {
     })
     return extractChannels(data).map(mapChannel)
   },
-  getChannel: async (workspaceId: string, channelId: string) => {
-    const { data } = await axiosInstance.get<Channel>(
-      `/workspaces/${workspaceId}/channels/${channelId}`,
-    )
-    return data
-  },
   createChannel: async (
     workspaceId: string,
     payload: Pick<Channel, 'name' | 'type' | 'description'>,
