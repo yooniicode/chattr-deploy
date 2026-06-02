@@ -5,11 +5,12 @@ export type MessageType = 'text' | 'file'
 export interface BackendMessage {
   id: string
   roomId: string
+  roomType?: 'CHANNEL' | 'DM'
   senderId: string
   senderNickname: string | null
   senderAvatarUrl: string | null
   type: MessageType
-  content: string
+  content: string | null
   attachments?: { fileUrl: string; fileName: string }[]
   parentMessageId?: string
   createdAt: string

@@ -39,7 +39,7 @@ export function mapMessage(raw: BackendMessage): Message {
     roomId: raw.roomId,
     author,
     type: raw.type,
-    content: raw.content,
+    content: raw.content ?? '',
     attachments,
     parentMessageId: raw.parentMessageId,
     createdAt: raw.createdAt,
