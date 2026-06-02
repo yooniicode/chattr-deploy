@@ -1,24 +1,16 @@
-import { Camera, Laptop, MessageSquare, Monitor, ShieldCheck, Smartphone, X } from 'lucide-react'
+import { Camera, Laptop, Monitor, ShieldCheck, Smartphone, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { authApi } from '../api/authApi'
 import { userApi } from '../api/userApi'
+import { AppPageHeader } from '../components/common/AppPageHeader'
 import { Avatar } from '../components/common/Avatar'
 import { Button } from '../components/common/Button'
 import { Input } from '../components/common/Input'
 import { MainLayout } from '../components/layout/MainLayout'
 import { useAuthStore } from '../stores/useAuthStore'
 import { useWorkspaceStore } from '../stores/useWorkspaceStore'
+import { getOrCreateDeviceId } from '../utils/device'
 import type { Device } from '../types/user'
-
-function ProfileTopHeader() {
-  return (
-    <header className="flex h-10 items-center border-b border-slate-300 bg-[#fbfbff] px-6">
-      <div className="flex items-center gap-2 text-[#0058BE]">
-        <MessageSquare aria-hidden size={22} strokeWidth={2.5} />
-        <span className="text-2xl font-extrabold">Chattr</span>
-      </div>
-    </header>
-  )
-}
 
 function DeviceIcon({ type }: { type: 'laptop' | 'phone' | 'desktop' }) {
   const Icon = type === 'phone' ? Smartphone : type === 'desktop' ? Monitor : Laptop
@@ -121,6 +113,14 @@ export function ProfilePage() {
     closeCamera()
   }
 
+  const currentDeviceId = getOrCreateDeviceId()
+
+  const handleDeviceLogout = (deviceId: string) => {
+    void authApi.deleteDevice(deviceId).then(() => {
+      setDevices((prev) => prev.filter((d) => d.deviceId !== deviceId))
+    })
+  }
+
   const handleSave = () => {
     const nextName = nickname.trim()
     const nextEmail = email.trim()
@@ -138,7 +138,7 @@ export function ProfilePage() {
   }
 
   return (
-    <MainLayout header={<ProfileTopHeader />}>
+    <MainLayout header={<AppPageHeader />}>
       <div className="min-h-0 overflow-y-auto bg-[#fbfbff] px-7 py-5">
         <div className="flex w-full flex-col gap-4">
           <section className="mt-2">
@@ -227,7 +227,7 @@ export function ProfilePage() {
 
                 <div className="flex items-center gap-2 text-sm font-medium text-amber-800">
                   <ShieldCheck size={17} />
-                  <span>Cognito 기반 보안 인증됨</span>
+                  <span>안전하게 인증됨</span>
                 </div>
 
                 <div className="mt-4 flex justify-end">
@@ -281,7 +281,7 @@ export function ProfilePage() {
               <div>
                 <h2 className="text-sm font-bold text-slate-950">계정 보안 상태</h2>
                 <p className="mt-0.5 text-sm font-medium text-slate-700">
-                  Cognito 2단계 인증이 활성화되어 보호 중입니다.
+                  2단계 인증이 활성화되어 계정이 보호됩니다.
                 </p>
               </div>
             </div>
@@ -296,23 +296,39 @@ export function ProfilePage() {
             </div>
 
             <div className="flex flex-col gap-3">
-              {devices.map((device) => (
-                <article
-                  className="flex items-center justify-between gap-4 rounded-lg border border-slate-300 bg-white px-5 py-2.5"
-                  key={device.id}
-                >
-                  <div className="flex min-w-0 items-center gap-4">
-                    <DeviceIcon type="laptop" />
-                    <div className="min-w-0">
-                      <h3 className="truncate text-sm font-medium text-slate-950">{device.name}</h3>
-                      <p className="mt-1 text-sm font-medium text-slate-500">{device.lastActiveAt}</p>
+              {devices.map((device) => {
+                const isCurrentDevice = device.deviceId === currentDeviceId
+                return (
+                  <article
+                    className="flex items-center justify-between gap-4 rounded-lg border border-slate-300 bg-white px-5 py-2.5"
+                    key={device.deviceId}
+                  >
+                    <div className="flex min-w-0 items-center gap-4">
+                      <DeviceIcon type={device.platform === 'MOBILE' ? 'phone' : 'laptop'} />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h3 className="truncate text-sm font-medium text-slate-950">{device.deviceName}</h3>
+                          {isCurrentDevice ? (
+                            <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                              현재 기기
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="mt-1 text-xs font-medium text-slate-500">{device.lastActiveAt}</p>
+                      </div>
                     </div>
-                  </div>
-                  <button className="shrink-0 text-sm font-bold text-[#BA1A1A]" type="button">
-                    로그아웃
-                  </button>
-                </article>
-              ))}
+                    {!isCurrentDevice ? (
+                      <button
+                        className="shrink-0 text-sm font-bold text-[#BA1A1A] hover:text-[#9f1515]"
+                        onClick={() => handleDeviceLogout(device.deviceId)}
+                        type="button"
+                      >
+                        로그아웃
+                      </button>
+                    ) : null}
+                  </article>
+                )
+              })}
               {devices.length === 0 ? (
                 <p className="text-sm font-medium text-slate-500">등록된 기기가 없습니다.</p>
               ) : null}

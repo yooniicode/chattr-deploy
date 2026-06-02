@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
+import { dmApi } from '../../api/dmApi'
 import { userApi } from '../../api/userApi'
 import { useDmStore } from '../../stores/useDmStore'
 import { Button } from '../common/Button'
@@ -79,10 +80,14 @@ export function DmSidebar() {
   const [createModalOpen, setCreateModalOpen] = useState(false)
   const [createError, setCreateError] = useState<string | undefined>()
   const [creating, setCreating] = useState(false)
-  const { activeRoomId, createRoom, markRoomOpened, rooms, setActiveRoomId, unreadCounts } = useDmStore()
+  const { activeRoomId, createRoom, deleteRoom, markRoomOpened, rooms, setActiveRoomId, unreadCounts } = useDmStore()
 
   const handleSelectRoom = (roomId: string) => {
     markRoomOpened(roomId)
+  }
+
+  const handleDeleteRoom = (roomId: string) => {
+    void dmApi.deleteRoom(roomId).then(() => deleteRoom(roomId))
   }
 
   const handleCreateDm = async (query: string) => {
@@ -144,6 +149,7 @@ export function DmSidebar() {
             active={room.id === activeRoomId}
             key={room.id}
             onClick={() => handleSelectRoom(room.id)}
+            onDelete={() => handleDeleteRoom(room.id)}
             room={room}
             unreadCount={unreadCounts[room.id]}
           />

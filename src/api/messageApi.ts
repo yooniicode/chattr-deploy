@@ -8,6 +8,12 @@ interface MessagePageResponse {
   content?: BackendMessage[]
 }
 
+interface UnreadCountResponse {
+  roomId: string
+  roomType: RoomType
+  unreadCount: number
+}
+
 function extractMessages(response: BackendMessage[] | MessagePageResponse | null | undefined): BackendMessage[] {
   if (Array.isArray(response)) return response
   return response?.content ?? []
@@ -54,12 +60,12 @@ export const messageApi = {
     const { data } = await axiosInstance.patch<Message>(`/messages/${messageId}`, { content })
     return data
   },
-  updateReadCursor: async (roomId: string, roomType: RoomType, messageId: string) => {
-    await axiosInstance.patch('/messages/read-cursor', { roomId, roomType, messageId })
+  updateReadCursor: async (roomId: string, roomType: RoomType, lastReadMessageId: string) => {
+    await axiosInstance.patch('/messages/read-cursor', { roomId, roomType, lastReadMessageId })
   },
-  getUnreadCount: async (roomId: string) => {
-    const { data } = await axiosInstance.get<{ count: number }>('/messages/unread-count', {
-      params: { roomId },
+  getUnreadCount: async (roomId: string, roomType: RoomType) => {
+    const { data } = await axiosInstance.get<UnreadCountResponse>('/messages/unread-count', {
+      params: { roomId, roomType },
     })
     return data
   },

@@ -1,8 +1,9 @@
 import { useState, type MouseEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Mail, MessageSquare, Pencil, Trash2, UserPlus, Users, X } from 'lucide-react'
+import { Mail, Pencil, Trash2, UserPlus, Users, X } from 'lucide-react'
 import { userApi } from '../api/userApi'
 import { workspaceApi } from '../api/workspaceApi'
+import { AppPageHeader } from '../components/common/AppPageHeader'
 import { Avatar } from '../components/common/Avatar'
 import { MainLayout } from '../components/layout/MainLayout'
 import { useAuthStore } from '../stores/useAuthStore'
@@ -144,17 +145,6 @@ function AddMemberModal({ workspaceId, onClose }: { workspaceId: string; onClose
         </div>
       </section>
     </div>
-  )
-}
-
-function WorkspaceTopHeader() {
-  return (
-    <header className="flex h-10 items-center border-b border-slate-300 bg-[#fbfbff] px-6">
-      <div className="flex items-center gap-2 text-[#0058BE]">
-        <MessageSquare aria-hidden size={22} strokeWidth={2.5} />
-        <span className="text-2xl font-extrabold">Chattr</span>
-      </div>
-    </header>
   )
 }
 
@@ -389,7 +379,7 @@ export function WorkspaceManagePage() {
   }
 
   return (
-    <MainLayout header={<WorkspaceTopHeader />}>
+    <MainLayout header={<AppPageHeader />}>
       {addMemberWorkspaceId ? (
         <AddMemberModal onClose={() => setAddMemberWorkspaceId(null)} workspaceId={addMemberWorkspaceId} />
       ) : null}
@@ -414,13 +404,13 @@ export function WorkspaceManagePage() {
         ) : null}
         <div className="flex w-full flex-col gap-7">
           <section>
-            <h1 className="text-base font-extrabold text-slate-950">workspace 설정</h1>
+            <h1 className="text-base font-extrabold text-slate-950">워크스페이스 설정</h1>
           </section>
 
           <section>
             <div className="mb-5 flex items-center gap-2 text-base font-medium text-slate-800">
               <Users size={18} />
-              <span>내 워크스페이스 목록: 참여 중인 워크스페이스를 정보를 확인 및 수정하세요.</span>
+              <span>내 워크스페이스: 참여 중인 워크스페이스 정보를 확인하고 관리하세요.</span>
             </div>
 
             {deleteError ? (
@@ -449,7 +439,7 @@ export function WorkspaceManagePage() {
           <section>
             <div className="mb-5 flex items-center gap-2 text-base font-medium text-slate-800">
               <Mail size={18} />
-              <span>초대된 목록: 워크스페이스에 참여하기 위해 초대를 수락해주세요.</span>
+              <span>초대 목록: 수락 대기 중인 워크스페이스 초대입니다.</span>
             </div>
             <p className="text-sm font-medium text-slate-500">수락 대기 중인 초대가 없습니다.</p>
           </section>

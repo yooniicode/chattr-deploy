@@ -1,8 +1,9 @@
-import { Gauge, MessageSquare, ShieldCheck } from 'lucide-react'
+import { Gauge, ShieldCheck } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '../components/common/Button'
 import { Input } from '../components/common/Input'
+import { Logo } from '../components/common/Logo'
 import { useAuthStore } from '../stores/useAuthStore'
 
 export function LoginPage() {
@@ -31,10 +32,7 @@ export function LoginPage() {
   return (
     <main className="flex min-h-screen flex-col bg-slate-50 text-slate-950">
       <header className="flex h-11 shrink-0 items-center px-4">
-        <div className="flex items-center gap-2 text-[#0058BE]">
-          <MessageSquare aria-hidden size={24} strokeWidth={2.5} />
-          <span className="text-base font-bold">Chattr</span>
-        </div>
+        <Logo />
       </header>
 
       <section className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden px-8 py-8 max-lg:overflow-visible">
@@ -162,19 +160,16 @@ export function LoginPage() {
       </section>
 
       <footer className="flex h-16 shrink-0 items-center justify-between border-t border-slate-200 px-9 text-xs font-medium text-slate-700 max-sm:flex-col max-sm:items-start max-sm:justify-center max-sm:gap-3">
-        <div className="flex items-center gap-2">
-          <MessageSquare aria-hidden className="text-slate-500" size={18} />
-          <span>© 2024 Chattr Inc. All rights reserved.</span>
-        </div>
+        <span>© 2026 Chattr Inc. All rights reserved.</span>
         <nav aria-label="Footer" className="flex items-center gap-8">
-          <a className="hover:text-[#0058BE]" href="/login">
+          <a className="hover:text-[#0058BE]" href="#">
             도움말
           </a>
-          <a className="hover:text-[#0058BE]" href="/login">
+          <a className="hover:text-[#0058BE]" href="#">
             개인정보처리방침
           </a>
-          <a className="hover:text-[#0058BE]" href="/login">
-            서비스상태
+          <a className="hover:text-[#0058BE]" href="#">
+            서비스 상태
           </a>
         </nav>
       </footer>

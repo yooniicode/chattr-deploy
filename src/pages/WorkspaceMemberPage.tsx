@@ -1,7 +1,8 @@
 import { useMemo, useState, type MouseEvent } from 'react'
 import { isAxiosError } from 'axios'
-import { AlertCircle, MessageSquare, UsersRound, X } from 'lucide-react'
+import { AlertCircle, UsersRound, X } from 'lucide-react'
 import { workspaceApi } from '../api/workspaceApi'
+import { AppPageHeader } from '../components/common/AppPageHeader'
 import { MainLayout } from '../components/layout/MainLayout'
 import { WorkspaceMemberItem } from '../components/workspace/WorkspaceMemberItem'
 import { useAuthStore } from '../stores/useAuthStore'
@@ -13,17 +14,6 @@ interface PermissionErrorState {
   message: string
   left: number
   top: number
-}
-
-function WorkspaceMemberHeader() {
-  return (
-    <header className="flex h-10 items-center border-b border-slate-300 bg-[#fbfbff] px-6">
-      <div className="flex items-center gap-2 text-[#0058BE]">
-        <MessageSquare aria-hidden size={22} strokeWidth={2.5} />
-        <span className="text-2xl font-extrabold">Chattr</span>
-      </div>
-    </header>
-  )
 }
 
 export function WorkspaceMemberPage() {
@@ -63,7 +53,7 @@ export function WorkspaceMemberPage() {
     if (currentWorkspaceRole !== 'admin') {
       setPermissionError({
         left,
-        message: `${member.user.name}님의 권한을 수정할 수 없습니다. 권한 수정은 workspace admin만 가능합니다.`,
+        message: `${member.user.name}님의 권한을 수정할 수 없습니다. 권한 수정은 워크스페이스 관리자만 가능합니다.`,
         top,
       })
       return
@@ -86,7 +76,7 @@ export function WorkspaceMemberPage() {
   }
 
   return (
-    <MainLayout header={<WorkspaceMemberHeader />}>
+    <MainLayout header={<AppPageHeader />}>
       <div className="relative min-h-0 overflow-y-auto bg-[#fbfbff] px-7 py-6">
         {permissionError ? (
           <div
@@ -100,7 +90,6 @@ export function WorkspaceMemberPage() {
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-extrabold text-slate-950">권한 수정 실패</p>
                 <p className="mt-1 text-xs leading-5 text-slate-600">{permissionError.message}</p>
-                <p className="mt-2 text-[11px] font-bold text-[#BA1A1A]">403 Forbidden</p>
               </div>
               <button
                 aria-label="권한 수정 실패 안내 닫기"
@@ -116,14 +105,14 @@ export function WorkspaceMemberPage() {
 
         <div className="flex w-full flex-col gap-6">
           <section>
-            <h1 className="text-base font-extrabold text-slate-950">workspace member 설정</h1>
+            <h1 className="text-base font-extrabold text-slate-950">워크스페이스 멤버 설정</h1>
           </section>
 
           <section>
             <div className="mb-5 flex items-center gap-2 text-sm font-medium text-slate-800">
               <UsersRound size={19} />
               <span>
-                워크스페이스 멤버 목록: 참여중인 멤버 정보 확인 및 멤버 권한을 수정하세요. (권한 수정은 admin만 가능합니다.)
+                워크스페이스 멤버 목록: 참여 중인 멤버 정보 확인 및 권한 수정이 가능합니다. (권한 수정은 관리자만 가능합니다.)
               </span>
             </div>
 

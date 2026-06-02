@@ -20,4 +20,7 @@ export const dmApi = {
     const { data } = await axiosInstance.post<BackendDmRoom>('/dms', { targetUserId })
     return data
   },
+  deleteRoom: async (dmId: string) => {
+    await axiosInstance.delete(`/dms/${dmId}`)
+  },
 }
