@@ -93,7 +93,6 @@ axiosInstance.interceptors.response.use(
       const { data: body } = await axios.post<{ data: RefreshTokenResponse }>(
         `${API_BASE}/auth/refresh`,
         { refreshToken: storedRefreshToken, username },
-        { withCredentials: true },
       )
       const tokens = body.data
 

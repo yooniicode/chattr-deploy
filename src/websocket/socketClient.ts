@@ -4,6 +4,8 @@ import { useSocketStore } from '../stores/useSocketStore'
 import type { BackendMessage } from '../types/message'
 import type { MessageSendRequest } from './socketTypes'
 
+const WS_URL = import.meta.env.VITE_WS_URL ?? 'https://api.acc-chattr.cloud/ws'
+
 class StompSocketClient {
   private client?: Client
   private activeSubscriptions = new Map<string, { unsubscribe: () => void }>()
@@ -13,7 +15,7 @@ class StompSocketClient {
     if (this.client?.active) return
 
     this.client = new Client({
-      webSocketFactory: () => new SockJS(import.meta.env.VITE_WS_URL ?? 'http://localhost:8080/ws') as unknown as WebSocket,
+      webSocketFactory: () => new SockJS(WS_URL) as unknown as WebSocket,
       connectHeaders: {
         Authorization: `Bearer ${idToken}`,
       },
@@ -62,12 +64,13 @@ class StompSocketClient {
   }
 
   send(payload: MessageSendRequest) {
-    if (!this.client?.connected) return
+    if (!this.client?.connected) return false
 
     this.client.publish({
       destination: '/app/messages',
       body: JSON.stringify(payload),
     })
+    return true
   }
 
   disconnect() {

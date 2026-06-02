@@ -391,10 +391,14 @@ export function ChatPage() {
       }
     }
 
-    channelSocket.sendMessage(activeChannel.id, content, {
+    const sent = channelSocket.sendMessage(activeChannel.id, content, {
       parentMessageId: replyTarget?.id,
       attachments,
     })
+    if (!sent) {
+      setSendError('실시간 메시지 서버에 연결되지 않았습니다. 잠시 후 다시 시도해주세요.')
+      return
+    }
     setReplyTarget(null)
   }
 
