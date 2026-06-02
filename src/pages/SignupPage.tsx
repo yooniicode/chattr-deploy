@@ -1,10 +1,11 @@
 import { isAxiosError } from 'axios'
-import { CheckCircle2, MessageSquare } from 'lucide-react'
+import { CheckCircle2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { authApi } from '../api/authApi'
 import { Button } from '../components/common/Button'
 import { Input } from '../components/common/Input'
+import { Logo } from '../components/common/Logo'
 
 const PASSWORD_RULES = [
   {
@@ -73,30 +74,27 @@ export function SignupPage() {
   return (
     <main className="flex min-h-screen flex-col bg-slate-50 text-slate-950">
       <header className="flex h-12 shrink-0 items-center px-5">
-        <Link className="flex items-center gap-2 text-[#0058BE]" to="/login">
-          <MessageSquare aria-hidden size={24} strokeWidth={2.5} />
-          <span className="text-base font-bold">Chattr</span>
-        </Link>
+        <Logo linkTo="/login" />
       </header>
 
       <section className="relative flex min-h-0 flex-1 items-center justify-center overflow-auto px-6 py-8">
         <div className="pointer-events-none absolute left-0 top-0 h-[24rem] w-[34rem] -translate-x-24 -translate-y-24 rounded-full bg-[#0058BE]/10 blur-3xl" />
         <div className="relative grid w-full max-w-5xl grid-cols-[minmax(0,1fr)_26rem] items-center gap-16 max-lg:max-w-xl max-lg:grid-cols-1">
           <div className="max-w-lg">
-            <p className="text-sm font-bold uppercase tracking-wide text-[#0058BE]">Create account</p>
+            <p className="text-sm font-bold uppercase tracking-wide text-[#0058BE]">새 계정 만들기</p>
             <h1 className="mt-4 text-3xl font-extrabold leading-tight text-slate-950">
               Chattr에서 새 협업을 시작하세요.
             </h1>
             <p className="mt-5 text-sm font-medium leading-6 text-slate-700">
-              AWS Cognito 기반 인증으로 안전하게 계정을 생성하고, 팀원들과 실시간으로 소통하세요.
+              안전하게 계정을 생성하고, 팀원들과 실시간으로 소통하세요.
             </p>
             <div className="mt-8 rounded-lg border border-slate-300 bg-white p-5">
-              <h2 className="text-sm font-extrabold text-slate-950">가입 처리 흐름</h2>
+              <h2 className="text-sm font-extrabold text-slate-950">Chattr을 선택해야 하는 이유</h2>
               <ul className="mt-3 space-y-2 text-sm font-medium leading-5 text-slate-700">
-                <li>1. Cognito User Pool에 사용자 등록</li>
-                <li>2. 서비스 DB에는 cognito_sub 기반 사용자 정보 저장</li>
-                <li>3. 로그인 후 Access Token, Refresh Token 발급</li>
-                <li>4. 멀티 디바이스 세션 발급 및 기기 목록 관리</li>
+                <li>💬 채널 기반의 체계적인 팀 소통</li>
+                <li>📨 1:1 다이렉트 메시지 지원</li>
+                <li>🔒 엔터프라이즈급 보안 인증</li>
+                <li>📱 모든 기기에서 실시간 동기화</li>
               </ul>
             </div>
           </div>

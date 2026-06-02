@@ -1,6 +1,7 @@
-import { Camera, Laptop, MessageSquare, Monitor, ShieldCheck, Smartphone, X } from 'lucide-react'
+import { Camera, Laptop, Monitor, ShieldCheck, Smartphone, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { userApi } from '../api/userApi'
+import { AppPageHeader } from '../components/common/AppPageHeader'
 import { Avatar } from '../components/common/Avatar'
 import { Button } from '../components/common/Button'
 import { Input } from '../components/common/Input'
@@ -8,17 +9,6 @@ import { MainLayout } from '../components/layout/MainLayout'
 import { useAuthStore } from '../stores/useAuthStore'
 import { useWorkspaceStore } from '../stores/useWorkspaceStore'
 import type { Device } from '../types/user'
-
-function ProfileTopHeader() {
-  return (
-    <header className="flex h-10 items-center border-b border-slate-300 bg-[#fbfbff] px-6">
-      <div className="flex items-center gap-2 text-[#0058BE]">
-        <MessageSquare aria-hidden size={22} strokeWidth={2.5} />
-        <span className="text-2xl font-extrabold">Chattr</span>
-      </div>
-    </header>
-  )
-}
 
 function DeviceIcon({ type }: { type: 'laptop' | 'phone' | 'desktop' }) {
   const Icon = type === 'phone' ? Smartphone : type === 'desktop' ? Monitor : Laptop
@@ -138,7 +128,7 @@ export function ProfilePage() {
   }
 
   return (
-    <MainLayout header={<ProfileTopHeader />}>
+    <MainLayout header={<AppPageHeader />}>
       <div className="min-h-0 overflow-y-auto bg-[#fbfbff] px-7 py-5">
         <div className="flex w-full flex-col gap-4">
           <section className="mt-2">
@@ -227,7 +217,7 @@ export function ProfilePage() {
 
                 <div className="flex items-center gap-2 text-sm font-medium text-amber-800">
                   <ShieldCheck size={17} />
-                  <span>Cognito 기반 보안 인증됨</span>
+                  <span>안전하게 인증됨</span>
                 </div>
 
                 <div className="mt-4 flex justify-end">
@@ -281,7 +271,7 @@ export function ProfilePage() {
               <div>
                 <h2 className="text-sm font-bold text-slate-950">계정 보안 상태</h2>
                 <p className="mt-0.5 text-sm font-medium text-slate-700">
-                  Cognito 2단계 인증이 활성화되어 보호 중입니다.
+                  2단계 인증이 활성화되어 계정이 보호됩니다.
                 </p>
               </div>
             </div>
