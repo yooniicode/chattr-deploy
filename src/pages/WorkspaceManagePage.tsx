@@ -1,4 +1,4 @@
-import { useState, type MouseEvent } from 'react'
+import { useEffect, useState, type MouseEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Mail, Pencil, Trash2, UserPlus, Users, X } from 'lucide-react'
 import { userApi } from '../api/userApi'
@@ -318,6 +318,15 @@ export function WorkspaceManagePage() {
   const setActiveWorkspaceId = useWorkspaceStore((state) => state.setActiveWorkspaceId)
   const storedWorkspaces = useWorkspaceStore((state) => state.workspaces)
   const workspaceMembersByWorkspaceId = useWorkspaceStore((state) => state.workspaceMembersByWorkspaceId)
+  const fetchMembers = useWorkspaceStore((state) => state.fetchMembers)
+
+  useEffect(() => {
+    storedWorkspaces.forEach((ws) => {
+      if (!workspaceMembersByWorkspaceId[ws.id]) {
+        void fetchMembers(ws.id)
+      }
+    })
+  }, [storedWorkspaces])
 
   const displayedWorkspaces: WorkspaceManageCardData[] = storedWorkspaces.map((workspace, index) => {
     const workspaceMembers = workspaceMembersByWorkspaceId[workspace.id] ?? []
