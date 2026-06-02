@@ -42,7 +42,6 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api'
 
 export const axiosInstance = axios.create({
   baseURL: API_BASE,
-  withCredentials: true,
 })
 
 axiosInstance.interceptors.request.use((config) => {
